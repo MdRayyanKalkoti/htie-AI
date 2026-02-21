@@ -92,18 +92,19 @@ header{display:flex;align-items:center;justify-content:space-between;padding-bot
 
 /* ── SENTENCE BOX ────────────────────────────────────────── */
 .sentence-wrap{position:relative;margin-bottom:12px}
-.target-box{background:rgba(0,255,180,.025);border:1px dashed rgba(0,255,180,.2);border-radius:8px;padding:14px 18px 14px 18px;position:relative;font-size:15px;color:#fff;letter-spacing:.3px;line-height:2.1;padding-right:130px}
+.target-box{background:rgba(0,255,180,.025);border:1px dashed rgba(0,255,180,.2);border-radius:8px;padding:14px 18px;position:relative;font-size:15px;color:#fff;letter-spacing:.3px;line-height:2.1}
 .target-label{position:absolute;top:-9px;left:12px;background:var(--surface);padding:0 8px;font-size:9px;color:var(--a);letter-spacing:2px;text-transform:uppercase}
 .new-sentence-btn{
-  position:absolute;right:12px;top:50%;transform:translateY(-50%);
   background:rgba(0,255,180,.09);border:1px solid rgba(0,255,180,.28);
-  border-radius:7px;padding:7px 13px;color:var(--a);font-family:var(--mono);
+  border-radius:7px;padding:7px 14px;color:var(--a);font-family:var(--mono);
   font-size:9px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;
-  transition:all .2s;white-space:nowrap;outline:none;display:flex;align-items:center;gap:6px
+  transition:all .2s;white-space:nowrap;outline:none;display:inline-flex;align-items:center;gap:6px;
+  flex-shrink:0;
 }
-.new-sentence-btn:hover{background:rgba(0,255,180,.16);box-shadow:var(--glow)}
-.new-sentence-btn:active{transform:translateY(-50%) scale(.97)}
-.sentence-counter{font-size:9px;color:var(--muted);margin-top:5px;text-align:right;letter-spacing:1px}
+.new-sentence-btn:hover{background:rgba(0,255,180,.18);box-shadow:var(--glow)}
+.new-sentence-btn:active{transform:scale(.97)}
+.sentence-bottom-row{display:flex;align-items:center;justify-content:space-between;margin-top:8px}
+.sentence-counter{font-size:9px;color:var(--muted);letter-spacing:1px}
 
 /* char highlight */
 .ch-pending{color:var(--dim)}.ch-correct{color:var(--a)}.ch-wrong{color:var(--w);background:rgba(255,107,53,.1);border-radius:2px}
@@ -230,8 +231,7 @@ footer{text-align:center;margin-top:36px;padding-top:16px;border-top:1px solid v
   .pgrid{grid-template-columns:repeat(2,1fr)}
   .style-grid{grid-template-columns:repeat(3,1fr)}
   .two-col{grid-template-columns:1fr}
-  .target-box{padding-right:18px}
-  .new-sentence-btn{position:static;transform:none;margin-top:10px;width:100%;justify-content:center}
+  .new-sentence-btn{width:100%;justify-content:center}
 }
 </style>
 </head>
@@ -245,7 +245,7 @@ footer{text-align:center;margin-top:36px;padding-top:16px;border-top:1px solid v
     <div class="pwa-title">Install HTIE App</div>
     <div class="pwa-sub">Add to your home screen — works offline, no browser UI</div>
   </div>
-  <button class="pwa-install-btn" id="pwaInstallBtn" onclick="installPWA()">⬇ Install App</button>
+  <button class="pwa-install-btn" id="pwaInstallBtn">⬇ Install App</button>
   <button class="pwa-dismiss" onclick="dismissPWA()">✕ Not now</button>
 </div>
 
@@ -296,11 +296,13 @@ footer{text-align:center;margin-top:36px;padding-top:16px;border-top:1px solid v
       <div class="target-box">
         <span class="target-label">TYPE EXACTLY</span>
         <div id="charDisplay"></div>
+      </div>
+      <div class="sentence-bottom-row">
+        <div class="sentence-counter" id="sentenceCounter">Sentence 1 of 20</div>
         <button class="new-sentence-btn" onclick="newSentence()" title="Get a new sentence to type">
           <span>↻</span> New Sentence
         </button>
       </div>
-      <div class="sentence-counter" id="sentenceCounter">Sentence 1 of 20</div>
     </div>
 
     <div class="prog-wrap">
@@ -529,74 +531,133 @@ footer{text-align:center;margin-top:36px;padding-top:16px;border-top:1px solid v
    New: rotating sentences, stop buttons everywhere, PWA
 ═══════════════════════════════════════════════════════════ */
 
-/* ─── PWA ───────────────────────────────────────────────── */
-let deferredPrompt = null;
+/* ═══════════════════════════════════════════════════════════
+   PWA INSTALLATION — ISOLATED MODULE
+   Specific to: HTIE v3 (Human Typing Intelligence Engine)
+   Cache key:   htie-v3-app  ← unique, won't touch other projects
+   Copy ONLY this block if you need PWA in another project,
+   and change CACHE_NAME + APP_ID to that project's own values.
+═══════════════════════════════════════════════════════════ */
 
-// Register inline service worker for PWA
-if ('serviceWorker' in navigator) {
+const CACHE_NAME = 'htie-v3-app';   // ← HTIE-specific. Other projects use their own name.
+const APP_ID     = 'htie-v3';       // ← Used in manifest & SW scope isolation.
+
+let deferredPrompt = null;          // Holds the browser's install event.
+
+/* ── 1. Inject PWA Web Manifest (HTIE-specific metadata) ── */
+(function injectManifest() {
+  const manifest = {
+    name: 'HTIE — Human Typing Intelligence Engine',
+    short_name: 'HTIE',
+    id: APP_ID,                      // Unique app identity — browser won't mix with others.
+    description: 'Learn and replicate your unique typing style with AI.',
+    start_url: '.',
+    scope: '.',
+    display: 'standalone',
+    orientation: 'any',
+    background_color: '#060b12',
+    theme_color: '#060b12',
+    icons: [{
+      src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23060b12'/%3E%3Cpolyline points='28 68 50 44 28 22' stroke='%2300ffb4' stroke-width='7' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cline x1='56' y1='76' x2='82' y2='76' stroke='%2300ffb4' stroke-width='7' stroke-linecap='round'/%3E%3C/svg%3E",
+      sizes: '512x512', type: 'image/svg+xml', purpose: 'any maskable'
+    }]
+  };
+  const blob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+  const link = document.createElement('link');
+  link.rel = 'manifest';
+  link.href = URL.createObjectURL(blob);
+  document.head.appendChild(link);
+})();
+
+/* ── 2. Register Service Worker (HTIE-specific cache only) ─ */
+(function registerSW() {
+  if (!('serviceWorker' in navigator)) return;
+  // Inline SW — uses CACHE_NAME so it only ever touches htie-v3-app cache.
+  // A different project registering its own SW with its own cache name
+  // will live in a completely separate cache partition.
   const swCode = `
-    const CACHE = 'htie-v3';
+    const CACHE = '${CACHE_NAME}';
     self.addEventListener('install', e => {
-      e.waitUntil(caches.open(CACHE).then(c => c.addAll(['/'])));
+      e.waitUntil(
+        caches.open(CACHE).then(c => c.addAll([self.location.href]))
+      );
+      self.skipWaiting();
+    });
+    self.addEventListener('activate', e => {
+      // Delete any OLD htie caches only — never touches other project caches.
+      e.waitUntil(
+        caches.keys().then(keys =>
+          Promise.all(
+            keys
+              .filter(k => k.startsWith('htie-') && k !== CACHE)
+              .map(k => caches.delete(k))
+          )
+        )
+      );
+      self.clients.claim();
     });
     self.addEventListener('fetch', e => {
-      e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));
+      e.respondWith(
+        caches.match(e.request).then(r => r || fetch(e.request).catch(() => r))
+      );
     });
   `;
-  const blob = new Blob([swCode], {type:'application/javascript'});
-  const swUrl = URL.createObjectURL(blob);
-  navigator.serviceWorker.register(swUrl).catch(()=>{});
-}
+  const blob = new Blob([swCode], { type: 'application/javascript' });
+  navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(() => {});
+})();
 
-// Inject PWA manifest
-const manifest = {
-  name: 'HTIE — Human Typing Intelligence Engine',
-  short_name: 'HTIE',
-  description: 'Learn and replicate your unique typing style with AI.',
-  start_url: '.',
-  display: 'standalone',
-  background_color: '#060b12',
-  theme_color: '#060b12',
-  icons: [{
-    src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23060b12'/%3E%3Cpolyline points='28 68 50 44 28 22' stroke='%2300ffb4' stroke-width='7' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cline x1='56' y1='76' x2='82' y2='76' stroke='%2300ffb4' stroke-width='7' stroke-linecap='round'/%3E%3C/svg%3E",
-    sizes: '512x512', type: 'image/svg+xml', purpose: 'any maskable'
-  }]
-};
-const mBlob = new Blob([JSON.stringify(manifest)], {type:'application/json'});
-const mUrl = URL.createObjectURL(mBlob);
-const mLink = document.createElement('link');
-mLink.rel='manifest'; mLink.href=mUrl;
-document.head.appendChild(mLink);
+/* ── 3. setupPWA() — Install button logic (isolated) ────── */
+function setupPWA() {
+  const bar        = document.getElementById('pwaBar');
+  const installBtn = document.getElementById('pwaInstallBtn');
 
-window.addEventListener('beforeinstallprompt', e => {
-  e.preventDefault();
-  deferredPrompt = e;
-  document.getElementById('pwaBar').classList.add('show');
-  playTabClick();
-});
-window.addEventListener('appinstalled', () => {
-  document.getElementById('pwaBar').classList.remove('show');
-  setSbar('capStatus','ok','✓ App installed successfully! You can now use HTIE offline.');
-});
+  // Button is hidden by default (CSS: display:none on #pwaBar).
+  // It only appears when the browser says the app is installable.
 
-function installPWA() {
-  playBtnClick();
-  if (deferredPrompt) {
+  // Show bar when browser fires the installable event.
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();          // Stop browser's own mini-bar.
+    deferredPrompt = e;          // Save event for later.
+    bar.classList.add('show');   // Reveal our custom gold bar.
+  });
+
+  // Handle Install button click.
+  installBtn.addEventListener('click', async () => {
+    playBtnClick();
+    if (!deferredPrompt) {
+      // Browser doesn't support auto-prompt (iOS Safari, Firefox).
+      // Show manual step-by-step instructions instead.
+      alert(
+        'To install HTIE as an app:\n\n' +
+        '📱 Android Chrome: Tap ⋮ → "Add to Home screen"\n' +
+        '💻 Chrome/Edge Desktop: Click ⋮ → "Install app"\n' +
+        '🍎 iPhone Safari: Tap Share ⎙ → "Add to Home Screen"'
+      );
+      return;
+    }
     deferredPrompt.prompt();
-    deferredPrompt.userChoice.then(r => {
-      if(r.outcome==='accepted') document.getElementById('pwaBar').classList.remove('show');
-      deferredPrompt = null;
-    });
-  } else {
-    // Show manual instructions
-    alert('To install:\n• Chrome/Edge: Click ⋮ menu → "Install app"\n• iOS Safari: Tap Share → "Add to Home Screen"\n• Android: Tap ⋮ → "Add to Home screen"');
-  }
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      bar.classList.remove('show');
+    }
+    deferredPrompt = null;
+  });
+
+  // Hide bar once the OS confirms the app is installed.
+  window.addEventListener('appinstalled', () => {
+    bar.classList.remove('show');
+    deferredPrompt = null;
+    setSbar('capStatus', 'ok', '✓ HTIE installed! Launch it from your home screen or desktop anytime.');
+  });
 }
+
+/* Dismiss button — user can close the bar without installing. */
 function dismissPWA() {
   playBtnClick();
   document.getElementById('pwaBar').classList.remove('show');
-  sessionStorage.setItem('pwa_dismissed','1');
+  sessionStorage.setItem('htie_pwa_dismissed', '1'); // session-scoped, resets on new tab.
 }
+/* END PWA ISOLATED MODULE ═══════════════════════════════ */
 
 /* ─── AUDIO ENGINE ──────────────────────────────────────── */
 let audioCtx = null;
@@ -1214,6 +1275,14 @@ function setSbar(id,type,msg){
   el.className='sbar'+(type?' '+type:'');
   el.textContent=msg;
 }
+
+/* ─── INIT ──────────────────────────────────────────────── */
+// setupPWA() is called here — completely isolated from all
+// other app logic. To reuse in another project: copy only
+// the PWA ISOLATED MODULE block above + this one line.
+document.addEventListener('DOMContentLoaded', () => {
+  setupPWA();
+});
 </script>
 </body>
 </html>
