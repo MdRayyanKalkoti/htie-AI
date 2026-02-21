@@ -8,7 +8,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="HTIE">
-<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%23060b12'/%3E%3Cpolyline points='30 65 50 45 30 25' stroke='%2300ffb4' stroke-width='6' fill='none' stroke-linecap='round'/%3E%3Cline x1='55' y1='75' x2='80' y2='75' stroke='%2300ffb4' stroke-width='6' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+<link rel="apple-touch-icon" href="/static/favicon.svg">
 <title>HTIE v3 — Human Typing Intelligence Engine</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -234,6 +235,14 @@ footer{text-align:center;margin-top:36px;padding-top:16px;border-top:1px solid v
   .new-sentence-btn{width:100%;justify-content:center}
 }
 </style>
+<link rel="manifest" href="/static/manifest.json">
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+      navigator.serviceWorker.register('/sw.js', { scope: '/' });
+    });
+  }
+</script>
 </head>
 <body>
 <div class="shell">
@@ -245,7 +254,9 @@ footer{text-align:center;margin-top:36px;padding-top:16px;border-top:1px solid v
     <div class="pwa-title">Install HTIE App</div>
     <div class="pwa-sub">Add to your home screen — works offline, no browser UI</div>
   </div>
-  <button class="pwa-install-btn" id="pwaInstallBtn">⬇ Install App</button>
+  <button class="pwa-install-btn" id="installBtn">
+    <span>📲</span> ⬇ Install App
+  </button>
   <button class="pwa-dismiss" onclick="dismissPWA()">✕ Not now</button>
 </div>
 
@@ -527,29 +538,24 @@ footer{text-align:center;margin-top:36px;padding-top:16px;border-top:1px solid v
 
 <script>
 /* ═══════════════════════════════════════════════════════════
-   HTIE v3 — Complete Engine
-   New: rotating sentences, stop buttons everywhere, PWA
+   htie.js — Human Typing Intelligence Engine v3
+   External JS file. Linked from index.html via <script src="htie.js">
+   All logic: PWA, audio, capture, analysis, playback, speech, generate, paste, profile
 ═══════════════════════════════════════════════════════════ */
 
 /* ═══════════════════════════════════════════════════════════
    PWA INSTALLATION — ISOLATED MODULE
-   Specific to: HTIE v3 (Human Typing Intelligence Engine)
-   Cache key:   htie-v3-app  ← unique, won't touch other projects
-   Copy ONLY this block if you need PWA in another project,
-   and change CACHE_NAME + APP_ID to that project's own values.
+   Website : HTIE v3 — Human Typing Intelligence Engine
+   Works on: PC (Chrome/Edge) + Mobile (Android/iOS)
+   To reuse: copy this entire block, change CACHE_NAME only.
 ═══════════════════════════════════════════════════════════ */
 
-const CACHE_NAME = 'htie-v3-app';   // ← HTIE-specific. Other projects use their own name.
-const APP_ID     = 'htie-v3';       // ← Used in manifest & SW scope isolation.
-
-let deferredPrompt = null;          // Holds the browser's install event.
-
-/* ── 1. Inject PWA Web Manifest (HTIE-specific metadata) ── */
+// ── Inject Web App Manifest ──────────────────────────────
 (function injectManifest() {
   const manifest = {
     name: 'HTIE — Human Typing Intelligence Engine',
     short_name: 'HTIE',
-    id: APP_ID,                      // Unique app identity — browser won't mix with others.
+    id: 'htie-v3',
     description: 'Learn and replicate your unique typing style with AI.',
     start_url: '.',
     scope: '.',
@@ -558,7 +564,7 @@ let deferredPrompt = null;          // Holds the browser's install event.
     background_color: '#060b12',
     theme_color: '#060b12',
     icons: [{
-      src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23060b12'/%3E%3Cpolyline points='28 68 50 44 28 22' stroke='%2300ffb4' stroke-width='7' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cline x1='56' y1='76' x2='82' y2='76' stroke='%2300ffb4' stroke-width='7' stroke-linecap='round'/%3E%3C/svg%3E",
+      src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23060b12'/%3E%3Cpolyline points='22 72 46 48 22 24' stroke='%2300ffb4' stroke-width='8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cline x1='54' y1='78' x2='82' y2='78' stroke='%2300ffb4' stroke-width='8' stroke-linecap='round'/%3E%3Ccircle cx='82' cy='78' r='5' fill='%2300b8ff'/%3E%3C/svg%3E",
       sizes: '512x512', type: 'image/svg+xml', purpose: 'any maskable'
     }]
   };
@@ -569,68 +575,59 @@ let deferredPrompt = null;          // Holds the browser's install event.
   document.head.appendChild(link);
 })();
 
-/* ── 2. Register Service Worker (HTIE-specific cache only) ─ */
+// ── Register Service Worker (offline caching) ────────────
 (function registerSW() {
   if (!('serviceWorker' in navigator)) return;
-  // Inline SW — uses CACHE_NAME so it only ever touches htie-v3-app cache.
-  // A different project registering its own SW with its own cache name
-  // will live in a completely separate cache partition.
+  const CACHE_NAME = 'htie-v3-app';
   const swCode = `
-    const CACHE = '${CACHE_NAME}';
+    const CACHE = 'htie-v3-app';
     self.addEventListener('install', e => {
-      e.waitUntil(
-        caches.open(CACHE).then(c => c.addAll([self.location.href]))
-      );
+      e.waitUntil(caches.open(CACHE).then(c => c.addAll([self.location.href])));
       self.skipWaiting();
     });
     self.addEventListener('activate', e => {
-      // Delete any OLD htie caches only — never touches other project caches.
       e.waitUntil(
         caches.keys().then(keys =>
-          Promise.all(
-            keys
-              .filter(k => k.startsWith('htie-') && k !== CACHE)
-              .map(k => caches.delete(k))
-          )
+          Promise.all(keys.filter(k => k.startsWith('htie-') && k !== CACHE).map(k => caches.delete(k)))
         )
       );
       self.clients.claim();
     });
     self.addEventListener('fetch', e => {
-      e.respondWith(
-        caches.match(e.request).then(r => r || fetch(e.request).catch(() => r))
-      );
+      e.respondWith(caches.match(e.request).then(r => r || fetch(e.request).catch(() => r)));
     });
   `;
   const blob = new Blob([swCode], { type: 'application/javascript' });
   navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(() => {});
 })();
 
-/* ── 3. setupPWA() — Install button logic (isolated) ────── */
+// ── PWA State ────────────────────────────────────────────
+let deferredPrompt; // holds the browser install event
+
+// ── setupPWA() — isolated, called once in DOMContentLoaded
 function setupPWA() {
-  const bar        = document.getElementById('pwaBar');
-  const installBtn = document.getElementById('pwaInstallBtn');
+  const installBtn = document.getElementById('installBtn');
 
-  // Button is hidden by default (CSS: display:none on #pwaBar).
-  // It only appears when the browser says the app is installable.
+  // Hide by default — only show when browser confirms installable
+  installBtn.style.display = 'none';
+  document.getElementById('pwaBar').style.display = 'none';
 
-  // Show bar when browser fires the installable event.
+  // Browser fires this on Chrome/Edge PC + Android when app is installable
   window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();          // Stop browser's own mini-bar.
-    deferredPrompt = e;          // Save event for later.
-    bar.classList.add('show');   // Reveal our custom gold bar.
+    e.preventDefault();
+    deferredPrompt = e;
+    installBtn.style.display = 'block';
+    document.getElementById('pwaBar').classList.add('show');
   });
 
-  // Handle Install button click.
+  // Install button click
   installBtn.addEventListener('click', async () => {
     playBtnClick();
     if (!deferredPrompt) {
-      // Browser doesn't support auto-prompt (iOS Safari, Firefox).
-      // Show manual step-by-step instructions instead.
       alert(
-        'To install HTIE as an app:\n\n' +
+        'Install HTIE on your device:\n\n' +
+        '💻 Chrome/Edge (PC): Click ⋮ menu → "Install app"\n' +
         '📱 Android Chrome: Tap ⋮ → "Add to Home screen"\n' +
-        '💻 Chrome/Edge Desktop: Click ⋮ → "Install app"\n' +
         '🍎 iPhone Safari: Tap Share ⎙ → "Add to Home Screen"'
       );
       return;
@@ -638,26 +635,30 @@ function setupPWA() {
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
     if (outcome === 'accepted') {
-      bar.classList.remove('show');
+      installBtn.style.display = 'none';
+      document.getElementById('pwaBar').classList.remove('show');
     }
     deferredPrompt = null;
   });
 
-  // Hide bar once the OS confirms the app is installed.
+  // Hide after OS confirms install
   window.addEventListener('appinstalled', () => {
-    bar.classList.remove('show');
+    installBtn.style.display = 'none';
+    document.getElementById('pwaBar').classList.remove('show');
     deferredPrompt = null;
-    setSbar('capStatus', 'ok', '✓ HTIE installed! Launch it from your home screen or desktop anytime.');
+    setSbar('capStatus', 'ok', '✓ HTIE installed! Open it anytime from your home screen or desktop.');
   });
 }
 
-/* Dismiss button — user can close the bar without installing. */
+// Dismiss bar without installing
 function dismissPWA() {
   playBtnClick();
   document.getElementById('pwaBar').classList.remove('show');
-  sessionStorage.setItem('htie_pwa_dismissed', '1'); // session-scoped, resets on new tab.
+  sessionStorage.setItem('htie_pwa_dismissed', '1');
 }
+
 /* END PWA ISOLATED MODULE ═══════════════════════════════ */
+
 
 /* ─── AUDIO ENGINE ──────────────────────────────────────── */
 let audioCtx = null;
@@ -665,114 +666,120 @@ function getACtx() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   return audioCtx;
 }
-function playKeyClick(isError=false) {
+
+function playKeyClick(isError = false) {
   try {
-    const ctx=getACtx(), t=ctx.currentTime;
-    // Noise burst
-    const buf=ctx.createBuffer(1,ctx.sampleRate*.045,ctx.sampleRate);
-    const d=buf.getChannelData(0);
-    for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*(1-i/d.length);
-    const src=ctx.createBufferSource(), ng=ctx.createGain();
-    ng.gain.setValueAtTime(isError?.2:.11,t);
-    ng.gain.exponentialRampToValueAtTime(.001,t+.05);
-    src.buffer=buf; src.connect(ng); ng.connect(ctx.destination); src.start();
-    // Tone
-    const o=ctx.createOscillator(), g=ctx.createGain();
-    o.type='square'; o.frequency.setValueAtTime(isError?160:680+Math.random()*200,t);
-    o.frequency.exponentialRampToValueAtTime(isError?75:180,t+.045);
-    g.gain.setValueAtTime(.055,t); g.gain.exponentialRampToValueAtTime(.001,t+.045);
-    o.connect(g); g.connect(ctx.destination); o.start(); o.stop(t+.05);
-  } catch(e){}
-}
-function playBtnClick() {
-  try {
-    const ctx=getACtx(), t=ctx.currentTime;
-    const o=ctx.createOscillator(), g=ctx.createGain();
-    o.type='sine'; o.frequency.setValueAtTime(430,t); o.frequency.exponentialRampToValueAtTime(270,t+.12);
-    g.gain.setValueAtTime(.2,t); g.gain.exponentialRampToValueAtTime(.001,t+.14);
-    o.connect(g); g.connect(ctx.destination); o.start(); o.stop(t+.15);
-    const o2=ctx.createOscillator(), g2=ctx.createGain();
-    o2.type='triangle'; o2.frequency.value=900;
-    g2.gain.setValueAtTime(.11,t); g2.gain.exponentialRampToValueAtTime(.001,t+.04);
-    o2.connect(g2); g2.connect(ctx.destination); o2.start(); o2.stop(t+.04);
-  } catch(e){}
-}
-function playSuccess() {
-  try {
-    const ctx=getACtx();
-    [523,659,784,1047].forEach((f,i)=>{
-      const o=ctx.createOscillator(), g=ctx.createGain(), t=ctx.currentTime+i*.1;
-      o.type='sine'; o.frequency.value=f;
-      g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.2,t+.03); g.gain.exponentialRampToValueAtTime(.001,t+.4);
-      o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t+.42);
-    });
-  } catch(e){}
-}
-function playMicOn() {
-  try {
-    const ctx=getACtx();
-    [440,550,660].forEach((f,i)=>{
-      const o=ctx.createOscillator(), g=ctx.createGain(), t=ctx.currentTime+i*.07;
-      o.type='sine'; o.frequency.value=f;
-      g.gain.setValueAtTime(.14,t); g.gain.exponentialRampToValueAtTime(.001,t+.25);
-      o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t+.27);
-    });
-  } catch(e){}
-}
-function playMicOff() {
-  try {
-    const ctx=getACtx();
-    [660,550,440].forEach((f,i)=>{
-      const o=ctx.createOscillator(), g=ctx.createGain(), t=ctx.currentTime+i*.06;
-      o.type='sine'; o.frequency.value=f;
-      g.gain.setValueAtTime(.11,t); g.gain.exponentialRampToValueAtTime(.001,t+.18);
-      o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t+.2);
-    });
-  } catch(e){}
-}
-function playAnalysisDone() {
-  try {
-    const ctx=getACtx();
-    [392,523,659,784,1047].forEach((f,i)=>{
-      const o=ctx.createOscillator(), g=ctx.createGain(), t=ctx.currentTime+i*.09;
-      o.type='triangle'; o.frequency.value=f;
-      g.gain.setValueAtTime(.16,t); g.gain.exponentialRampToValueAtTime(.001,t+.38);
-      o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t+.4);
-    });
-  } catch(e){}
-}
-function playTabClick() {
-  try {
-    const ctx=getACtx(), t=ctx.currentTime;
-    const o=ctx.createOscillator(), g=ctx.createGain();
-    o.type='sine'; o.frequency.setValueAtTime(600,t); o.frequency.exponentialRampToValueAtTime(400,t+.09);
-    g.gain.setValueAtTime(.09,t); g.gain.exponentialRampToValueAtTime(.001,t+.1);
-    o.connect(g); g.connect(ctx.destination); o.start(); o.stop(t+.11);
-  } catch(e){}
-}
-function playStop() {
-  try {
-    const ctx=getACtx(), t=ctx.currentTime;
-    const o=ctx.createOscillator(), g=ctx.createGain();
-    o.type='sawtooth'; o.frequency.setValueAtTime(300,t); o.frequency.exponentialRampToValueAtTime(80,t+.15);
-    g.gain.setValueAtTime(.18,t); g.gain.exponentialRampToValueAtTime(.001,t+.18);
-    o.connect(g); g.connect(ctx.destination); o.start(); o.stop(t+.2);
-  } catch(e){}
-}
-function playNewSentence() {
-  try {
-    const ctx=getACtx();
-    [660,880].forEach((f,i)=>{
-      const o=ctx.createOscillator(), g=ctx.createGain(), t=ctx.currentTime+i*.08;
-      o.type='sine'; o.frequency.value=f;
-      g.gain.setValueAtTime(.12,t); g.gain.exponentialRampToValueAtTime(.001,t+.22);
-      o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t+.24);
-    });
-  } catch(e){}
+    const ctx = getACtx(), t = ctx.currentTime;
+    const buf = ctx.createBuffer(1, ctx.sampleRate * .045, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
+    const src = ctx.createBufferSource(), ng = ctx.createGain();
+    ng.gain.setValueAtTime(isError ? .2 : .11, t);
+    ng.gain.exponentialRampToValueAtTime(.001, t + .05);
+    src.buffer = buf; src.connect(ng); ng.connect(ctx.destination); src.start();
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = 'square';
+    o.frequency.setValueAtTime(isError ? 160 : 680 + Math.random() * 200, t);
+    o.frequency.exponentialRampToValueAtTime(isError ? 75 : 180, t + .045);
+    g.gain.setValueAtTime(.055, t); g.gain.exponentialRampToValueAtTime(.001, t + .045);
+    o.connect(g); g.connect(ctx.destination); o.start(); o.stop(t + .05);
+  } catch (e) {}
 }
 
-// Unlock AudioCtx on any interaction
-document.addEventListener('click', ()=>{ try{getACtx();}catch(e){} }, {once:false, passive:true});
+function playBtnClick() {
+  try {
+    const ctx = getACtx(), t = ctx.currentTime;
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = 'sine'; o.frequency.setValueAtTime(430, t); o.frequency.exponentialRampToValueAtTime(270, t + .12);
+    g.gain.setValueAtTime(.2, t); g.gain.exponentialRampToValueAtTime(.001, t + .14);
+    o.connect(g); g.connect(ctx.destination); o.start(); o.stop(t + .15);
+    const o2 = ctx.createOscillator(), g2 = ctx.createGain();
+    o2.type = 'triangle'; o2.frequency.value = 900;
+    g2.gain.setValueAtTime(.11, t); g2.gain.exponentialRampToValueAtTime(.001, t + .04);
+    o2.connect(g2); g2.connect(ctx.destination); o2.start(); o2.stop(t + .04);
+  } catch (e) {}
+}
+
+function playSuccess() {
+  try {
+    const ctx = getACtx();
+    [523, 659, 784, 1047].forEach((f, i) => {
+      const o = ctx.createOscillator(), g = ctx.createGain(), t = ctx.currentTime + i * .1;
+      o.type = 'sine'; o.frequency.value = f;
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.2, t + .03); g.gain.exponentialRampToValueAtTime(.001, t + .4);
+      o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t + .42);
+    });
+  } catch (e) {}
+}
+
+function playMicOn() {
+  try {
+    const ctx = getACtx();
+    [440, 550, 660].forEach((f, i) => {
+      const o = ctx.createOscillator(), g = ctx.createGain(), t = ctx.currentTime + i * .07;
+      o.type = 'sine'; o.frequency.value = f;
+      g.gain.setValueAtTime(.14, t); g.gain.exponentialRampToValueAtTime(.001, t + .25);
+      o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t + .27);
+    });
+  } catch (e) {}
+}
+
+function playMicOff() {
+  try {
+    const ctx = getACtx();
+    [660, 550, 440].forEach((f, i) => {
+      const o = ctx.createOscillator(), g = ctx.createGain(), t = ctx.currentTime + i * .06;
+      o.type = 'sine'; o.frequency.value = f;
+      g.gain.setValueAtTime(.11, t); g.gain.exponentialRampToValueAtTime(.001, t + .18);
+      o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t + .2);
+    });
+  } catch (e) {}
+}
+
+function playAnalysisDone() {
+  try {
+    const ctx = getACtx();
+    [392, 523, 659, 784, 1047].forEach((f, i) => {
+      const o = ctx.createOscillator(), g = ctx.createGain(), t = ctx.currentTime + i * .09;
+      o.type = 'triangle'; o.frequency.value = f;
+      g.gain.setValueAtTime(.16, t); g.gain.exponentialRampToValueAtTime(.001, t + .38);
+      o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t + .4);
+    });
+  } catch (e) {}
+}
+
+function playTabClick() {
+  try {
+    const ctx = getACtx(), t = ctx.currentTime;
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = 'sine'; o.frequency.setValueAtTime(600, t); o.frequency.exponentialRampToValueAtTime(400, t + .09);
+    g.gain.setValueAtTime(.09, t); g.gain.exponentialRampToValueAtTime(.001, t + .1);
+    o.connect(g); g.connect(ctx.destination); o.start(); o.stop(t + .11);
+  } catch (e) {}
+}
+
+function playStop() {
+  try {
+    const ctx = getACtx(), t = ctx.currentTime;
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = 'sawtooth'; o.frequency.setValueAtTime(300, t); o.frequency.exponentialRampToValueAtTime(80, t + .15);
+    g.gain.setValueAtTime(.18, t); g.gain.exponentialRampToValueAtTime(.001, t + .18);
+    o.connect(g); g.connect(ctx.destination); o.start(); o.stop(t + .2);
+  } catch (e) {}
+}
+
+function playNewSentence() {
+  try {
+    const ctx = getACtx();
+    [660, 880].forEach((f, i) => {
+      const o = ctx.createOscillator(), g = ctx.createGain(), t = ctx.currentTime + i * .08;
+      o.type = 'sine'; o.frequency.value = f;
+      g.gain.setValueAtTime(.12, t); g.gain.exponentialRampToValueAtTime(.001, t + .22);
+      o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t + .24);
+    });
+  } catch (e) {}
+}
+
 
 /* ─── SENTENCE POOL ─────────────────────────────────────── */
 const SENTENCES = [
@@ -800,18 +807,29 @@ const SENTENCES = [
 let sentenceIdx = 0;
 let currentTarget = SENTENCES[0];
 
-/* ─── STATE ─────────────────────────────────────────────── */
-let timestamps=[], keysTyped=0, errors=0, startTime=null;
-let analysisData=null, selectedStyle='learned';
-let playTimer=null, speechTypTimer=null, genTimer=null, pasteTimer=null;
-let recognition=null, isListening=false, spokenText='';
-let currentGenSentence='', currentGenTopic='';
+/* ─── APP STATE ─────────────────────────────────────────── */
+let timestamps = [], keysTyped = 0, errors = 0, startTime = null;
+let analysisData = null, selectedStyle = 'learned';
+let playTimer = null, speechTypTimer = null, genTimer = null, pasteTimer = null;
+let recognition = null, isListening = false, spokenText = '';
+let currentGenSentence = '', currentGenTopic = '';
+let inputBox;
 
-/* ─── INIT ──────────────────────────────────────────────── */
-renderChars('');
-updateSentenceCounter();
-loadProfile();
-updDelay();
+
+/* ─── INIT — DOMContentLoaded ───────────────────────────── */
+document.addEventListener('DOMContentLoaded', () => {
+  setupPWA();            // PWA install button — isolated module
+  inputBox = document.getElementById('inputBox');
+  bindCaptureEvents();   // attach keydown/input after DOM ready
+  renderChars('');
+  updateSentenceCounter();
+  loadProfile();
+  updDelay();
+
+  // Unlock AudioCtx on any tap/click
+  document.addEventListener('click', () => { try { getACtx(); } catch (e) {} }, { passive: true });
+});
+
 
 /* ─── SENTENCE SWITCHER ─────────────────────────────────── */
 function newSentence() {
@@ -819,470 +837,474 @@ function newSentence() {
   playNewSentence();
   sentenceIdx = (sentenceIdx + 1) % SENTENCES.length;
   currentTarget = SENTENCES[sentenceIdx];
-  resetCapture(true); // silent reset
+  resetCapture(true);
   updateSentenceCounter();
-  setSbar('capStatus','info',`↻ New sentence loaded — sentence ${sentenceIdx+1} of ${SENTENCES.length}.`);
+  setSbar('capStatus', 'info', `↻ New sentence loaded — sentence ${sentenceIdx + 1} of ${SENTENCES.length}.`);
 }
 function updateSentenceCounter() {
-  document.getElementById('sentenceCounter').textContent = `Sentence ${sentenceIdx+1} of ${SENTENCES.length}`;
+  document.getElementById('sentenceCounter').textContent = `Sentence ${sentenceIdx + 1} of ${SENTENCES.length}`;
 }
 
+
 /* ─── TABS ──────────────────────────────────────────────── */
-const TAB_NAMES = ['capture','analysis','playback','speech','generate','paste','profile'];
+const TAB_NAMES = ['capture', 'analysis', 'playback', 'speech', 'generate', 'paste', 'profile'];
 function goTab(name) {
   playTabClick();
-  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  document.getElementById('tab-'+name).classList.add('active');
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
   document.querySelectorAll('.tab')[TAB_NAMES.indexOf(name)].classList.add('active');
 }
 
+
 /* ─── CHAR DISPLAY ──────────────────────────────────────── */
 function renderChars(typed) {
-  let h='';
-  for(let i=0;i<currentTarget.length;i++){
-    let c='ch-pending';
-    if(i<typed.length) c=typed[i]===currentTarget[i]?'ch-correct':'ch-wrong';
-    if(i===typed.length) c+=' ch-cursor';
-    h+=`<span class="${c}">${currentTarget[i]===' '?'&nbsp;':currentTarget[i]}</span>`;
+  let h = '';
+  for (let i = 0; i < currentTarget.length; i++) {
+    let c = 'ch-pending';
+    if (i < typed.length) c = typed[i] === currentTarget[i] ? 'ch-correct' : 'ch-wrong';
+    if (i === typed.length) c += ' ch-cursor';
+    h += `<span class="${c}">${currentTarget[i] === ' ' ? '&nbsp;' : currentTarget[i]}</span>`;
   }
-  document.getElementById('charDisplay').innerHTML=h;
+  document.getElementById('charDisplay').innerHTML = h;
 }
 
-/* ─── CAPTURE ───────────────────────────────────────────── */
-const inputBox = document.getElementById('inputBox');
-inputBox.addEventListener('keydown', e=>{
-  if(!startTime) startTime=Date.now();
-  timestamps.push(Date.now());
-  keysTyped++;
-  const typed=inputBox.value;
-  const next=typed.length<currentTarget.length?currentTarget[typed.length]:null;
-  const isErr=next&&e.key!=='Backspace'&&e.key!==next&&e.key.length===1;
-  playKeyClick(isErr);
-});
-inputBox.addEventListener('input', ()=>{
-  const typed=inputBox.value;
-  renderChars(typed);
-  const pct=Math.min(100,Math.round(typed.length/currentTarget.length*100));
-  document.getElementById('pFill').style.width=pct+'%';
-  document.getElementById('pPct').textContent=pct+'%';
-  let correct=0,errs=0;
-  for(let i=0;i<Math.min(typed.length,currentTarget.length);i++){
-    typed[i]===currentTarget[i]?correct++:errs++;
-  }
-  errors=errs;
-  const acc=typed.length?Math.round(correct/typed.length*100):0;
-  document.getElementById('lAcc').textContent=typed.length?acc+'%':'—';
-  document.getElementById('lKeys').textContent=keysTyped;
-  document.getElementById('lErr').textContent=errors;
-  if(startTime&&timestamps.length>1){
-    const el=(Date.now()-startTime)/60000;
-    const wpm=Math.round(typed.trim().split(/\s+/).length/el);
-    document.getElementById('lWpm').textContent=isFinite(wpm)?wpm:0;
-  }
-  renderRhythm();
-  const cs=document.getElementById('capStatus');
-  if(pct===100){cs.className='sbar ok';cs.textContent='✓ Complete! Click Analyze & Learn Style.'}
-  else{cs.className='sbar';cs.textContent=`⬡ Capturing… ${typed.length}/${currentTarget.length} chars`}
-});
 
-/* ─── RHYTHM ────────────────────────────────────────────── */
-function renderRhythm(){
-  if(timestamps.length<2) return;
-  const d=[]; for(let i=1;i<timestamps.length;i++) d.push(timestamps[i]-timestamps[i-1]);
-  const r=d.slice(-60), mx=Math.max(...r,1);
-  document.getElementById('rhythmBars').innerHTML=r.map(v=>{
-    const h=Math.max(4,Math.round(v/mx*52));
-    const c=v<100?'rbar fast':v>300?'rbar slow':'rbar';
-    return`<div class="${c}" style="height:${h}px" title="${v}ms"></div>`;
+/* ─── CAPTURE EVENTS ────────────────────────────────────── */
+function bindCaptureEvents() {
+  inputBox.addEventListener('keydown', e => {
+    if (!startTime) startTime = Date.now();
+    timestamps.push(Date.now());
+    keysTyped++;
+    const typed = inputBox.value;
+    const next = typed.length < currentTarget.length ? currentTarget[typed.length] : null;
+    const isErr = next && e.key !== 'Backspace' && e.key !== next && e.key.length === 1;
+    playKeyClick(isErr);
+  });
+
+  inputBox.addEventListener('input', () => {
+    const typed = inputBox.value;
+    renderChars(typed);
+    const pct = Math.min(100, Math.round(typed.length / currentTarget.length * 100));
+    document.getElementById('pFill').style.width = pct + '%';
+    document.getElementById('pPct').textContent = pct + '%';
+    let correct = 0, errs = 0;
+    for (let i = 0; i < Math.min(typed.length, currentTarget.length); i++) {
+      typed[i] === currentTarget[i] ? correct++ : errs++;
+    }
+    errors = errs;
+    const acc = typed.length ? Math.round(correct / typed.length * 100) : 0;
+    document.getElementById('lAcc').textContent = typed.length ? acc + '%' : '—';
+    document.getElementById('lKeys').textContent = keysTyped;
+    document.getElementById('lErr').textContent = errors;
+    if (startTime && timestamps.length > 1) {
+      const el = (Date.now() - startTime) / 60000;
+      const wpm = Math.round(typed.trim().split(/\s+/).length / el);
+      document.getElementById('lWpm').textContent = isFinite(wpm) ? wpm : 0;
+    }
+    renderRhythm();
+    const cs = document.getElementById('capStatus');
+    if (pct === 100) { cs.className = 'sbar ok'; cs.textContent = '✓ Complete! Click Analyze & Learn Style.'; }
+    else { cs.className = 'sbar'; cs.textContent = `⬡ Capturing… ${typed.length}/${currentTarget.length} chars`; }
+  });
+}
+
+
+/* ─── RHYTHM BARS ───────────────────────────────────────── */
+function renderRhythm() {
+  if (timestamps.length < 2) return;
+  const d = []; for (let i = 1; i < timestamps.length; i++) d.push(timestamps[i] - timestamps[i - 1]);
+  const r = d.slice(-60), mx = Math.max(...r, 1);
+  document.getElementById('rhythmBars').innerHTML = r.map(v => {
+    const h = Math.max(4, Math.round(v / mx * 52));
+    const c = v < 100 ? 'rbar fast' : v > 300 ? 'rbar slow' : 'rbar';
+    return `<div class="${c}" style="height:${h}px" title="${v}ms"></div>`;
   }).join('');
 }
 
+
 /* ─── ANALYSIS ──────────────────────────────────────────── */
-function runAnalysis(){
+function runAnalysis() {
   playBtnClick();
-  const typed=inputBox.value;
-  if(!typed.trim()||timestamps.length<3){
-    setSbar('capStatus','warn','⚠ Type more before analyzing.');return;
-  }
-  const d=[]; for(let i=1;i<timestamps.length;i++) d.push(timestamps[i]-timestamps[i-1]);
-  const avg=Math.round(d.reduce((a,b)=>a+b,0)/d.length);
-  const maxp=Math.max(...d);
-  const tsec=Math.round((timestamps.at(-1)-timestamps[0])/1000);
-  let correct=0;
-  for(let i=0;i<Math.min(typed.length,currentTarget.length);i++) if(typed[i]===currentTarget[i]) correct++;
-  const acc=Math.round(correct/currentTarget.length*100);
-  const el=(timestamps.at(-1)-timestamps[0])/60000;
-  const wpm=Math.round(typed.trim().split(/\s+/).length/el);
-  const styleClass=wpm>70&&acc>92?'EXPERT':wpm>55?'PROFICIENT':wpm<25||acc<75?'BEGINNER':'AVERAGE';
-  analysisData={avg,maxp,tsec,acc,wpm,styleClass,delays:d,typed};
+  const typed = inputBox.value;
+  if (!typed.trim() || timestamps.length < 3) { setSbar('capStatus', 'warn', '⚠ Type more before analyzing.'); return; }
+  const d = []; for (let i = 1; i < timestamps.length; i++) d.push(timestamps[i] - timestamps[i - 1]);
+  const avg = Math.round(d.reduce((a, b) => a + b, 0) / d.length);
+  const maxp = Math.max(...d);
+  const tsec = Math.round((timestamps.at(-1) - timestamps[0]) / 1000);
+  let correct = 0;
+  for (let i = 0; i < Math.min(typed.length, currentTarget.length); i++) if (typed[i] === currentTarget[i]) correct++;
+  const acc = Math.round(correct / currentTarget.length * 100);
+  const el = (timestamps.at(-1) - timestamps[0]) / 60000;
+  const wpm = Math.round(typed.trim().split(/\s+/).length / el);
+  const styleClass = wpm > 70 && acc > 92 ? 'EXPERT' : wpm > 55 ? 'PROFICIENT' : wpm < 25 || acc < 75 ? 'BEGINNER' : 'AVERAGE';
+  analysisData = { avg, maxp, tsec, acc, wpm, styleClass, delays: d, typed };
 
-  document.getElementById('m-wpm').textContent=wpm;
-  document.getElementById('m-acc').textContent=acc+'%';
-  document.getElementById('m-delay').innerHTML=avg+'<span> ms</span>';
-  document.getElementById('m-maxp').innerHTML=maxp+'<span> ms</span>';
-  document.getElementById('m-time').innerHTML=tsec+'<span> s</span>';
-  document.getElementById('m-class').textContent=styleClass;
+  document.getElementById('m-wpm').textContent = wpm;
+  document.getElementById('m-acc').textContent = acc + '%';
+  document.getElementById('m-delay').innerHTML = avg + '<span> ms</span>';
+  document.getElementById('m-maxp').innerHTML = maxp + '<span> ms</span>';
+  document.getElementById('m-time').innerHTML = tsec + '<span> s</span>';
+  document.getElementById('m-class').textContent = styleClass;
   renderHeatmap(d);
-  renderTips(wpm,acc,avg,maxp);
-  saveProfile(wpm,acc,avg);
+  renderTips(wpm, acc, avg, maxp);
+  saveProfile(wpm, acc, avg);
 
-  document.getElementById('delaySlider').value=avg;
+  document.getElementById('delaySlider').value = avg;
   updDelay();
 
   document.getElementById('learnedBanner').classList.add('show');
-  document.getElementById('learnedDesc').textContent=`${wpm} WPM · ${acc}% accuracy · ${styleClass} · ${avg}ms signature delay`;
+  document.getElementById('learnedDesc').textContent = `${wpm} WPM · ${acc}% accuracy · ${styleClass} · ${avg}ms signature delay`;
   document.getElementById('profileChip').classList.add('show');
-  document.getElementById('speechTypeBtn').style.opacity='1';
-  document.getElementById('speechStopBtn').style.opacity='1';
-  document.getElementById('genTypeBtn').style.opacity='1';
-  document.getElementById('genStopBtn').style.opacity='1';
-  document.getElementById('pasteTypeBtn').style.opacity='1';
-  document.getElementById('pasteStyleChip').innerHTML=`<span class="auto-chip">🧠 ${styleClass} · ${avg}ms</span>`;
-  document.getElementById('hStatus').textContent='STYLE ACTIVE';
+  document.getElementById('speechTypeBtn').style.opacity = '1';
+  document.getElementById('speechStopBtn').style.opacity = '1';
+  document.getElementById('genTypeBtn').style.opacity = '1';
+  document.getElementById('genStopBtn').style.opacity = '1';
+  document.getElementById('pasteTypeBtn').style.opacity = '1';
+  document.getElementById('pasteStyleChip').innerHTML = `<span class="auto-chip">🧠 ${styleClass} · ${avg}ms</span>`;
+  document.getElementById('hStatus').textContent = 'STYLE ACTIVE';
 
   playAnalysisDone();
-  setSbar('capStatus','ok',`✓ Style learned — ${wpm} WPM · ${acc}% · ${styleClass}`);
-  setTimeout(()=>goTab('analysis'),600);
+  setSbar('capStatus', 'ok', `✓ Style learned — ${wpm} WPM · ${acc}% · ${styleClass}`);
+  setTimeout(() => goTab('analysis'), 600);
 }
 
+
 /* ─── HEATMAP ───────────────────────────────────────────── */
-function renderHeatmap(delays){
-  const mx=Math.max(...delays,1);
-  const wrap=document.getElementById('heatmapWrap');
-  wrap.innerHTML='';
-  currentTarget.split('').forEach((ch,i)=>{
-    const v=(delays[i]||0)/mx;
-    const div=document.createElement('div');
-    div.className='hmc';
-    div.style.background=`rgba(${Math.round(v*255)},${Math.round((1-v)*200)},100,${.35+v*.55})`;
-    div.style.color=v>.55?'#fff':'#000';
-    div.textContent=ch===' '?'·':ch;
-    div.title=`"${ch}" — ${delays[i]||0}ms`;
+function renderHeatmap(delays) {
+  const mx = Math.max(...delays, 1);
+  const wrap = document.getElementById('heatmapWrap');
+  wrap.innerHTML = '';
+  currentTarget.split('').forEach((ch, i) => {
+    const v = (delays[i] || 0) / mx;
+    const div = document.createElement('div');
+    div.className = 'hmc';
+    div.style.background = `rgba(${Math.round(v * 255)},${Math.round((1 - v) * 200)},100,${.35 + v * .55})`;
+    div.style.color = v > .55 ? '#fff' : '#000';
+    div.textContent = ch === ' ' ? '·' : ch;
+    div.title = `"${ch}" — ${delays[i] || 0}ms`;
     wrap.appendChild(div);
   });
 }
 
+
 /* ─── TIPS ──────────────────────────────────────────────── */
-function renderTips(wpm,acc,avg,maxp){
-  const tips=[];
-  if(acc>=95) tips.push({t:'good',i:'✓',m:`Outstanding accuracy at ${acc}%. Your muscle memory is excellent.`});
-  else if(acc>=85) tips.push({t:'info',i:'ℹ',m:`Good accuracy at ${acc}%. Focus on the letters you keep missing.`});
-  else tips.push({t:'warn',i:'⚠',m:`Accuracy is ${acc}% — slow down and prioritize correctness over speed.`});
-  if(wpm>=70) tips.push({t:'good',i:'⚡',m:`${wpm} WPM — you're in the top 15% of typists globally.`});
-  else if(wpm>=40) tips.push({t:'info',i:'ℹ',m:`${wpm} WPM is solid. Daily 10-min drills will push you past 60.`});
-  else tips.push({t:'warn',i:'⚠',m:`${wpm} WPM — focus on home-row placement and consistent rhythm.`});
-  if(avg>300) tips.push({t:'warn',i:'⏱',m:`${avg}ms average delay. Smoother finger transitions will improve flow.`});
-  if(maxp>1500) tips.push({t:'warn',i:'⏸',m:`${maxp}ms max pause — memorize common word patterns to reduce stops.`});
-  if(avg<120) tips.push({t:'pu',i:'🔥',m:`Only ${avg}ms average — you have natural fast-twitch typing rhythm.`});
-  document.getElementById('tipsBox').innerHTML=tips.map(t=>
+function renderTips(wpm, acc, avg, maxp) {
+  const tips = [];
+  if (acc >= 95) tips.push({ t: 'good', i: '✓', m: `Outstanding accuracy at ${acc}%. Your muscle memory is excellent.` });
+  else if (acc >= 85) tips.push({ t: 'info', i: 'ℹ', m: `Good accuracy at ${acc}%. Focus on the letters you keep missing.` });
+  else tips.push({ t: 'warn', i: '⚠', m: `Accuracy is ${acc}% — slow down and prioritize correctness over speed.` });
+  if (wpm >= 70) tips.push({ t: 'good', i: '⚡', m: `${wpm} WPM — you're in the top 15% of typists globally.` });
+  else if (wpm >= 40) tips.push({ t: 'info', i: 'ℹ', m: `${wpm} WPM is solid. Daily 10-min drills will push you past 60.` });
+  else tips.push({ t: 'warn', i: '⚠', m: `${wpm} WPM — focus on home-row placement and consistent rhythm.` });
+  if (avg > 300) tips.push({ t: 'warn', i: '⏱', m: `${avg}ms average delay. Smoother finger transitions will improve flow.` });
+  if (maxp > 1500) tips.push({ t: 'warn', i: '⏸', m: `${maxp}ms max pause — memorize common word patterns to reduce stops.` });
+  if (avg < 120) tips.push({ t: 'pu', i: '🔥', m: `Only ${avg}ms average — you have natural fast-twitch typing rhythm.` });
+  document.getElementById('tipsBox').innerHTML = tips.map(t =>
     `<div class="tip ${t.t}"><div class="tip-i">${t.i}</div><div>${t.m}</div></div>`
   ).join('');
 }
 
-/* ─── DELAY ─────────────────────────────────────────────── */
-function getDelay(i=0,style=null){
-  const s=style||selectedStyle;
-  const base=analysisData?.avg||parseInt(document.getElementById('delaySlider').value);
-  switch(s){
-    case 'slow':    return 265+Math.random()*190;
-    case 'fast':    return 55+Math.random()*55;
-    case 'formal':  return 140+Math.random()*80;
-    case 'erratic': return 40+Math.random()*530;
+
+/* ─── DELAY / STYLE ─────────────────────────────────────── */
+function getDelay(i = 0, style = null) {
+  const s = style || selectedStyle;
+  const base = analysisData?.avg || parseInt(document.getElementById('delaySlider').value);
+  switch (s) {
+    case 'slow':    return 265 + Math.random() * 190;
+    case 'fast':    return 55 + Math.random() * 55;
+    case 'formal':  return 140 + Math.random() * 80;
+    case 'erratic': return 40 + Math.random() * 530;
     case 'learned': default:
-      if(analysisData?.delays[i]) return analysisData.delays[i]*(0.82+Math.random()*0.36);
-      return base+(Math.random()*50-25);
+      if (analysisData?.delays[i]) return analysisData.delays[i] * (0.82 + Math.random() * 0.36);
+      return base + (Math.random() * 50 - 25);
   }
 }
-function updDelay(){
-  document.getElementById('delayVal').textContent=document.getElementById('delaySlider').value+'ms';
+function updDelay() {
+  document.getElementById('delayVal').textContent = document.getElementById('delaySlider').value + 'ms';
 }
-function selStyle(el){
+function selStyle(el) {
   playBtnClick();
-  document.querySelectorAll('.scard').forEach(c=>c.classList.remove('sel'));
+  document.querySelectorAll('.scard').forEach(c => c.classList.remove('sel'));
   el.classList.add('sel');
-  selectedStyle=el.dataset.style;
-  document.getElementById('pb-style').textContent=el.querySelector('.sn').textContent;
+  selectedStyle = el.dataset.style;
+  document.getElementById('pb-style').textContent = el.querySelector('.sn').textContent;
 }
 
-/* ─── TAB 3 PLAYBACK ────────────────────────────────────── */
-function startPB(){
+
+/* ─── TAB 3: PLAYBACK ───────────────────────────────────── */
+function startPB() {
   playBtnClick();
-  if(playTimer){clearTimeout(playTimer);playTimer=null;}
-  const txt=document.getElementById('pbText'), cur=document.getElementById('pbCursor');
-  txt.textContent=''; cur.style.display='inline-block';
-  setSbar('pbStatus','info','⟳ AI typing…');
-  document.getElementById('pb-style').textContent=document.querySelector('.scard.sel .sn').textContent;
-  let i=0;
-  function next(){
-    if(i>=currentTarget.length){
-      cur.style.display='none'; playSuccess();
-      setSbar('pbStatus','ok','✓ Playback complete.'); return;
-    }
-    txt.textContent+=currentTarget[i]; playKeyClick();
-    document.getElementById('pb-prog').textContent=Math.round((i+1)/currentTarget.length*100)+'%';
-    document.getElementById('pb-chars').textContent=i+1;
-    document.getElementById('pb-delay').textContent=Math.round(getDelay(i));
-    i++; playTimer=setTimeout(next,getDelay(i));
+  if (playTimer) { clearTimeout(playTimer); playTimer = null; }
+  const txt = document.getElementById('pbText'), cur = document.getElementById('pbCursor');
+  txt.textContent = ''; cur.style.display = 'inline-block';
+  setSbar('pbStatus', 'info', '⟳ AI typing…');
+  document.getElementById('pb-style').textContent = document.querySelector('.scard.sel .sn').textContent;
+  let i = 0;
+  function next() {
+    if (i >= currentTarget.length) { cur.style.display = 'none'; playSuccess(); setSbar('pbStatus', 'ok', '✓ Playback complete.'); return; }
+    txt.textContent += currentTarget[i]; playKeyClick();
+    document.getElementById('pb-prog').textContent = Math.round((i + 1) / currentTarget.length * 100) + '%';
+    document.getElementById('pb-chars').textContent = i + 1;
+    document.getElementById('pb-delay').textContent = Math.round(getDelay(i));
+    i++; playTimer = setTimeout(next, getDelay(i));
   }
   next();
 }
-function stopPB(){
+function stopPB() {
   playStop();
-  if(playTimer){clearTimeout(playTimer);playTimer=null;}
-  document.getElementById('pbCursor').style.display='none';
-  setSbar('pbStatus','warn','■ Stopped.');
+  if (playTimer) { clearTimeout(playTimer); playTimer = null; }
+  document.getElementById('pbCursor').style.display = 'none';
+  setSbar('pbStatus', 'warn', '■ Stopped.');
 }
 
-/* ─── TAB 4 SPEECH ──────────────────────────────────────── */
-function toggleSpeech(){
+
+/* ─── TAB 4: SPEECH ─────────────────────────────────────── */
+function toggleSpeech() {
   getACtx();
-  if(isListening){stopSpeech();return;}
-  if(!('webkitSpeechRecognition' in window||'SpeechRecognition' in window)){
-    setSbar('speechStatus','warn','⚠ Speech recognition not supported. Use Chrome browser.');return;
+  if (isListening) { stopSpeech(); return; }
+  if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+    setSbar('speechStatus', 'warn', '⚠ Speech recognition not supported. Use Chrome browser.'); return;
   }
   playMicOn();
-  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  recognition=new SR();
-  recognition.continuous=true; recognition.interimResults=true; recognition.lang='en-US';
-  recognition.onstart=()=>{
-    isListening=true;
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SR();
+  recognition.continuous = true; recognition.interimResults = true; recognition.lang = 'en-US';
+  recognition.onstart = () => {
+    isListening = true;
     document.getElementById('speechRing').classList.add('listening');
-    document.getElementById('waveBars').querySelectorAll('.wbar').forEach(b=>b.classList.add('active'));
-    document.getElementById('speechHint').textContent='LISTENING…';
-    setSbar('speechStatus','pu','🎙 Listening — speak clearly.');
+    document.getElementById('waveBars').querySelectorAll('.wbar').forEach(b => b.classList.add('active'));
+    document.getElementById('speechHint').textContent = 'LISTENING…';
+    setSbar('speechStatus', 'pu', '🎙 Listening — speak clearly.');
   };
-  recognition.onresult=e=>{
-    let interim='',final='';
-    for(let i=e.resultIndex;i<e.results.length;i++){
-      if(e.results[i].isFinal) final+=e.results[i][0].transcript;
-      else interim+=e.results[i][0].transcript;
+  recognition.onresult = e => {
+    let interim = '', final = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) final += e.results[i][0].transcript;
+      else interim += e.results[i][0].transcript;
     }
-    if(final) spokenText+=final+' ';
-    const show=(spokenText+(interim?'<span style="color:var(--muted)">'+interim+'</span>':'')).trim();
-    document.getElementById('transcriptBox').innerHTML=show||'<span class="placeholder-t">Listening…</span>';
-    if(spokenText.trim()) document.getElementById('speechTypeBtn').style.opacity='1';
+    if (final) spokenText += final + ' ';
+    const show = (spokenText + (interim ? '<span style="color:var(--muted)">' + interim + '</span>' : '')).trim();
+    document.getElementById('transcriptBox').innerHTML = show || '<span class="placeholder-t">Listening…</span>';
+    if (spokenText.trim()) document.getElementById('speechTypeBtn').style.opacity = '1';
   };
-  recognition.onerror=e=>{setSbar('speechStatus','warn','⚠ Error: '+e.error);stopSpeech();};
-  recognition.onend=()=>{if(isListening) stopSpeech();};
+  recognition.onerror = e => { setSbar('speechStatus', 'warn', '⚠ Error: ' + e.error); stopSpeech(); };
+  recognition.onend = () => { if (isListening) stopSpeech(); };
   recognition.start();
 }
-function stopSpeech(){
-  playMicOff(); isListening=false;
-  if(recognition){try{recognition.stop();}catch(e){}}
+function stopSpeech() {
+  playMicOff(); isListening = false;
+  if (recognition) { try { recognition.stop(); } catch (e) {} }
   document.getElementById('speechRing').classList.remove('listening');
-  document.getElementById('waveBars').querySelectorAll('.wbar').forEach(b=>b.classList.remove('active'));
-  document.getElementById('speechHint').textContent='TAP MIC TO SPEAK';
-  if(spokenText) setSbar('speechStatus','ok',`✓ Captured "${spokenText.trim().substring(0,55)}…"`);
+  document.getElementById('waveBars').querySelectorAll('.wbar').forEach(b => b.classList.remove('active'));
+  document.getElementById('speechHint').textContent = 'TAP MIC TO SPEAK';
+  if (spokenText) setSbar('speechStatus', 'ok', `✓ Captured "${spokenText.trim().substring(0, 55)}…"`);
 }
-function typeSpeech(){
+function typeSpeech() {
   playBtnClick();
-  const txt=spokenText.trim();
-  if(!txt){setSbar('speechStatus','warn','⚠ No speech captured yet.');return;}
-  if(speechTypTimer){clearTimeout(speechTypTimer);speechTypTimer=null;}
-  const out=document.getElementById('speechPbText'), cur=document.getElementById('speechCursor');
-  out.textContent=''; cur.style.display='inline-block';
-  setSbar('speechPbStatus','info','⟳ AI typing your speech in your style…');
-  let i=0;
-  function next(){
-    if(i>=txt.length){cur.style.display='none';playSuccess();setSbar('speechPbStatus','ok','✓ Done — AI typed your speech.');return;}
-    out.textContent+=txt[i]; playKeyClick(); i++;
-    speechTypTimer=setTimeout(next,getDelay(i,'learned'));
+  const txt = spokenText.trim();
+  if (!txt) { setSbar('speechStatus', 'warn', '⚠ No speech captured yet.'); return; }
+  if (speechTypTimer) { clearTimeout(speechTypTimer); speechTypTimer = null; }
+  const out = document.getElementById('speechPbText'), cur = document.getElementById('speechCursor');
+  out.textContent = ''; cur.style.display = 'inline-block';
+  setSbar('speechPbStatus', 'info', '⟳ AI typing your speech in your style…');
+  let i = 0;
+  function next() {
+    if (i >= txt.length) { cur.style.display = 'none'; playSuccess(); setSbar('speechPbStatus', 'ok', '✓ Done — AI typed your speech.'); return; }
+    out.textContent += txt[i]; playKeyClick(); i++;
+    speechTypTimer = setTimeout(next, getDelay(i, 'learned'));
   }
   next();
 }
-function stopSpeechType(){
+function stopSpeechType() {
   playStop();
-  if(speechTypTimer){clearTimeout(speechTypTimer);speechTypTimer=null;}
-  document.getElementById('speechCursor').style.display='none';
-  setSbar('speechPbStatus','warn','■ Stopped.');
+  if (speechTypTimer) { clearTimeout(speechTypTimer); speechTypTimer = null; }
+  document.getElementById('speechCursor').style.display = 'none';
+  setSbar('speechPbStatus', 'warn', '■ Stopped.');
 }
-function clearSpeech(){
-  playBtnClick(); spokenText='';
-  stopSpeechType();
-  document.getElementById('transcriptBox').innerHTML='<span class="placeholder-t">Your spoken words will appear here…</span>';
-  document.getElementById('speechPbText').textContent='';
-  document.getElementById('speechTypeBtn').style.opacity='.4';
-  setSbar('speechStatus','','⬡ Cleared. Tap mic to speak.');
-  setSbar('speechPbStatus','','⬡ Speak, then press AI Type My Words.');
+function clearSpeech() {
+  playBtnClick(); spokenText = ''; stopSpeechType();
+  document.getElementById('transcriptBox').innerHTML = '<span class="placeholder-t">Your spoken words will appear here…</span>';
+  document.getElementById('speechPbText').textContent = '';
+  document.getElementById('speechTypeBtn').style.opacity = '.4';
+  setSbar('speechStatus', '', '⬡ Cleared. Tap mic to speak.');
+  setSbar('speechPbStatus', '', '⬡ Speak, then press AI Type My Words.');
 }
 
-/* ─── TAB 5 GENERATE ────────────────────────────────────── */
+
+/* ─── TAB 5: GENERATE ───────────────────────────────────── */
 const GEN_POOL = {
-  tech:["The neural network processes millions of parameters to identify complex patterns.","Quantum computing will fundamentally transform cryptography and data encryption.","Machine learning models require extensive labeled datasets for high prediction accuracy.","The API endpoint returns a JSON response with secure authentication tokens.","Cloud infrastructure enables horizontal scaling for unpredictable traffic spikes.","Version control systems allow teams to collaborate on code without conflicts.","Edge computing reduces latency by processing data closer to where it is generated.","Containerization with Docker ensures consistent environments across all deployments."],
-  story:["She opened the old wooden door and found a room filled with glowing amber light.","The detective stood in the rain, piecing together clues no one else could see.","He had been walking for three days before the village appeared on the horizon.","The letter arrived without a stamp, a postmark, or any return address at all.","Every night she lit the lantern in the window, hoping he would find his way home.","The child whispered a name into the wind and the mountains echoed it back."],
-  science:["Photosynthesis converts solar energy into chemical energy stored in glucose molecules.","The entropy of an isolated system always increases over time by the second law.","Black holes distort spacetime so severely that not even light can escape them.","The human genome contains approximately three billion base pairs of DNA sequences.","Neurons communicate through electrochemical signals transmitted across synaptic gaps.","Climate models use differential equations to simulate atmospheric interactions."],
-  business:["The quarterly earnings report exceeded analyst expectations by fourteen percent.","Strategic partnerships can accelerate market penetration and reduce acquisition costs.","Customer retention is five times more cost-effective than acquiring new customers.","The board approved the merger after a thorough due diligence review of financials.","Agile methodology enables teams to iterate quickly and respond to requirements.","Market segmentation helps companies tailor their value proposition to customers."],
-  philosophy:["The examined life requires courage to confront uncomfortable truths about ourselves.","Free will and determinism have occupied philosophers for centuries without resolution.","Consciousness remains one of the deepest mysteries in philosophy and neuroscience.","The pursuit of meaning gives human beings the strength to endure any circumstance.","Ethics asks not only what is right but who we become through the choices we make.","Truth is not a destination but a practice — an ongoing commitment to inquiry."],
-  casual:["Can you believe how fast this week went by? Feels like Monday was yesterday.","I finally tried that new coffee place downtown and it was worth the hype.","We should plan a trip sometime — nothing fancy, just somewhere new and different.","Just finished the best book I've picked up in years, absolutely could not put it down.","That movie was so much better than I expected, way better than the reviews said.","I've been trying to wake up earlier but it's a real struggle every single morning."],
+  tech: ["The neural network processes millions of parameters to identify complex patterns.", "Quantum computing will fundamentally transform cryptography and data encryption.", "Machine learning models require extensive labeled datasets for high prediction accuracy.", "The API endpoint returns a JSON response with secure authentication tokens.", "Cloud infrastructure enables horizontal scaling for unpredictable traffic spikes.", "Version control systems allow teams to collaborate on code without conflicts.", "Edge computing reduces latency by processing data closer to where it is generated.", "Containerization with Docker ensures consistent environments across all deployments."],
+  story: ["She opened the old wooden door and found a room filled with glowing amber light.", "The detective stood in the rain, piecing together clues no one else could see.", "He had been walking for three days before the village appeared on the horizon.", "The letter arrived without a stamp, a postmark, or any return address at all.", "Every night she lit the lantern in the window, hoping he would find his way home.", "The child whispered a name into the wind and the mountains echoed it back."],
+  science: ["Photosynthesis converts solar energy into chemical energy stored in glucose molecules.", "The entropy of an isolated system always increases over time by the second law.", "Black holes distort spacetime so severely that not even light can escape them.", "The human genome contains approximately three billion base pairs of DNA sequences.", "Neurons communicate through electrochemical signals transmitted across synaptic gaps.", "Climate models use differential equations to simulate atmospheric interactions."],
+  business: ["The quarterly earnings report exceeded analyst expectations by fourteen percent.", "Strategic partnerships can accelerate market penetration and reduce acquisition costs.", "Customer retention is five times more cost-effective than acquiring new customers.", "The board approved the merger after a thorough due diligence review of financials.", "Agile methodology enables teams to iterate quickly and respond to requirements.", "Market segmentation helps companies tailor their value proposition to customers."],
+  philosophy: ["The examined life requires courage to confront uncomfortable truths about ourselves.", "Free will and determinism have occupied philosophers for centuries without resolution.", "Consciousness remains one of the deepest mysteries in philosophy and neuroscience.", "The pursuit of meaning gives human beings the strength to endure any circumstance.", "Ethics asks not only what is right but who we become through the choices we make.", "Truth is not a destination but a practice — an ongoing commitment to inquiry."],
+  casual: ["Can you believe how fast this week went by? Feels like Monday was yesterday.", "I finally tried that new coffee place downtown and it was worth the hype.", "We should plan a trip sometime — nothing fancy, just somewhere new and different.", "Just finished the best book I've picked up in years, absolutely could not put it down.", "That movie was so much better than I expected, way better than the reviews said.", "I've been trying to wake up earlier but it's a real struggle every single morning."],
 };
 
-function genSentence(topic){
+function genSentence(topic) {
   playBtnClick();
-  if(genTimer){clearTimeout(genTimer);genTimer=null;}
-  let t=topic;
-  if(topic==='random') t=Object.keys(GEN_POOL)[Math.floor(Math.random()*Object.keys(GEN_POOL).length)];
-  const pool=GEN_POOL[t]||GEN_POOL.tech;
-  const s=pool[Math.floor(Math.random()*pool.length)];
-  currentGenSentence=s; currentGenTopic=t;
-  document.getElementById('genText').textContent=s;
-  document.getElementById('genText').style.color='#fff';
-  document.getElementById('genTypeBtn').style.opacity='1';
-  document.getElementById('genStopBtn').style.opacity='1';
-  document.getElementById('gen-topic').textContent=t.toUpperCase();
-  setSbar('genStatus','info',`✓ Generated — ${s.length} chars · Topic: ${t} · Auto-typing…`);
-  genTimer=setTimeout(()=>typeGenSentence(),900);
+  if (genTimer) { clearTimeout(genTimer); genTimer = null; }
+  let t = topic;
+  if (topic === 'random') t = Object.keys(GEN_POOL)[Math.floor(Math.random() * Object.keys(GEN_POOL).length)];
+  const pool = GEN_POOL[t] || GEN_POOL.tech;
+  const s = pool[Math.floor(Math.random() * pool.length)];
+  currentGenSentence = s; currentGenTopic = t;
+  document.getElementById('genText').textContent = s;
+  document.getElementById('genText').style.color = '#fff';
+  document.getElementById('genTypeBtn').style.opacity = '1';
+  document.getElementById('genStopBtn').style.opacity = '1';
+  document.getElementById('gen-topic').textContent = t.toUpperCase();
+  setSbar('genStatus', 'info', `✓ Generated — ${s.length} chars · Topic: ${t} · Auto-typing…`);
+  genTimer = setTimeout(() => typeGenSentence(), 900);
 }
-function typeGenSentence(){
+function typeGenSentence() {
   playBtnClick();
-  if(!currentGenSentence){setSbar('genStatus','warn','⚠ Generate a sentence first.');return;}
-  if(genTimer){clearTimeout(genTimer);genTimer=null;}
-  const txt=currentGenSentence;
-  const out=document.getElementById('genPbText'), cur=document.getElementById('genCursor');
-  out.textContent=''; cur.style.display='inline-block';
-  document.getElementById('gen-chars').textContent='0';
-  document.getElementById('gen-prog').textContent='0%';
-  setSbar('genStatus','info','⟳ AI typing in your style…');
-  let i=0, start=Date.now();
-  function next(){
-    if(i>=txt.length){
-      cur.style.display='none'; playSuccess();
-      const el=(Date.now()-start)/60000;
-      const wpm=Math.round(txt.split(' ').length/el);
-      document.getElementById('gen-wpm').textContent=wpm;
-      setSbar('genStatus','ok',`✓ Done — ${wpm} WPM · ${currentGenTopic}`);
+  if (!currentGenSentence) { setSbar('genStatus', 'warn', '⚠ Generate a sentence first.'); return; }
+  if (genTimer) { clearTimeout(genTimer); genTimer = null; }
+  const txt = currentGenSentence;
+  const out = document.getElementById('genPbText'), cur = document.getElementById('genCursor');
+  out.textContent = ''; cur.style.display = 'inline-block';
+  document.getElementById('gen-chars').textContent = '0';
+  document.getElementById('gen-prog').textContent = '0%';
+  setSbar('genStatus', 'info', '⟳ AI typing in your style…');
+  let i = 0, start = Date.now();
+  function next() {
+    if (i >= txt.length) {
+      cur.style.display = 'none'; playSuccess();
+      const elapsed = (Date.now() - start) / 60000;
+      const wpm = Math.round(txt.split(' ').length / elapsed);
+      document.getElementById('gen-wpm').textContent = wpm;
+      setSbar('genStatus', 'ok', `✓ Done — ${wpm} WPM · ${currentGenTopic}`);
       return;
     }
-    out.textContent+=txt[i]; playKeyClick();
-    document.getElementById('gen-prog').textContent=Math.round((i+1)/txt.length*100)+'%';
-    document.getElementById('gen-chars').textContent=i+1;
-    i++; genTimer=setTimeout(next,getDelay(i,'learned'));
+    out.textContent += txt[i]; playKeyClick();
+    document.getElementById('gen-prog').textContent = Math.round((i + 1) / txt.length * 100) + '%';
+    document.getElementById('gen-chars').textContent = i + 1;
+    i++; genTimer = setTimeout(next, getDelay(i, 'learned'));
   }
   next();
 }
-function stopGen(){
+function stopGen() {
   playStop();
-  if(genTimer){clearTimeout(genTimer);genTimer=null;}
-  document.getElementById('genCursor').style.display='none';
-  setSbar('genStatus','warn','■ Stopped.');
+  if (genTimer) { clearTimeout(genTimer); genTimer = null; }
+  document.getElementById('genCursor').style.display = 'none';
+  setSbar('genStatus', 'warn', '■ Stopped.');
 }
 
-/* ─── TAB 6 PASTE ───────────────────────────────────────── */
-function pasteInput(){
-  const v=document.getElementById('pasteArea').value;
-  document.getElementById('pasteCharCount').textContent=v.length+' characters';
-  document.getElementById('pasteTypeBtn').style.opacity=v.trim()?'1':'.4';
-  document.getElementById('paste-total').textContent=v.length||'—';
+
+/* ─── TAB 6: PASTE ──────────────────────────────────────── */
+function pasteInput() {
+  const v = document.getElementById('pasteArea').value;
+  document.getElementById('pasteCharCount').textContent = v.length + ' characters';
+  document.getElementById('pasteTypeBtn').style.opacity = v.trim() ? '1' : '.4';
+  document.getElementById('paste-total').textContent = v.length || '—';
 }
-function typePaste(){
+function typePaste() {
   playBtnClick();
-  const txt=document.getElementById('pasteArea').value.trim();
-  if(!txt){setSbar('pasteStatus','warn','⚠ Paste text first.');return;}
-  if(pasteTimer){clearTimeout(pasteTimer);pasteTimer=null;}
-  const out=document.getElementById('pastePbText'), cur=document.getElementById('pasteCursor');
-  out.textContent=''; cur.style.display='inline-block';
-  document.getElementById('pasteProg').style.width='0%';
-  setSbar('pasteStatus','info','⟳ AI typing your text in your style…');
-  let i=0;
-  function next(){
-    if(i>=txt.length){cur.style.display='none';playSuccess();setSbar('pasteStatus','ok','✓ All text typed in your style.');return;}
-    out.textContent+=txt[i]; playKeyClick();
-    const pct=Math.round((i+1)/txt.length*100);
-    document.getElementById('paste-prog').textContent=pct+'%';
-    document.getElementById('paste-chars').textContent=i+1;
-    const d=Math.round(getDelay(i,'learned'));
-    document.getElementById('paste-delay').textContent=d;
-    document.getElementById('pasteProg').style.width=pct+'%';
-    i++; pasteTimer=setTimeout(next,getDelay(i,'learned'));
+  const txt = document.getElementById('pasteArea').value.trim();
+  if (!txt) { setSbar('pasteStatus', 'warn', '⚠ Paste text first.'); return; }
+  if (pasteTimer) { clearTimeout(pasteTimer); pasteTimer = null; }
+  const out = document.getElementById('pastePbText'), cur = document.getElementById('pasteCursor');
+  out.textContent = ''; cur.style.display = 'inline-block';
+  document.getElementById('pasteProg').style.width = '0%';
+  setSbar('pasteStatus', 'info', '⟳ AI typing your text in your style…');
+  let i = 0;
+  function next() {
+    if (i >= txt.length) { cur.style.display = 'none'; playSuccess(); setSbar('pasteStatus', 'ok', '✓ All text typed in your style.'); return; }
+    out.textContent += txt[i]; playKeyClick();
+    const pct = Math.round((i + 1) / txt.length * 100);
+    document.getElementById('paste-prog').textContent = pct + '%';
+    document.getElementById('paste-chars').textContent = i + 1;
+    document.getElementById('paste-delay').textContent = Math.round(getDelay(i, 'learned'));
+    document.getElementById('pasteProg').style.width = pct + '%';
+    i++; pasteTimer = setTimeout(next, getDelay(i, 'learned'));
   }
   next();
 }
-function stopPaste(){
+function stopPaste() {
   playStop();
-  if(pasteTimer){clearTimeout(pasteTimer);pasteTimer=null;}
-  document.getElementById('pasteCursor').style.display='none';
-  setSbar('pasteStatus','warn','■ Stopped.');
+  if (pasteTimer) { clearTimeout(pasteTimer); pasteTimer = null; }
+  document.getElementById('pasteCursor').style.display = 'none';
+  setSbar('pasteStatus', 'warn', '■ Stopped.');
 }
-function clearPaste(){
+function clearPaste() {
   playBtnClick(); stopPaste();
-  document.getElementById('pasteArea').value='';
-  document.getElementById('pastePbText').textContent='';
-  document.getElementById('pasteCharCount').textContent='0 characters';
-  document.getElementById('pasteProg').style.width='0%';
-  document.getElementById('paste-prog').textContent='0%';
-  document.getElementById('paste-chars').textContent='0';
-  document.getElementById('pasteTypeBtn').style.opacity='.4';
-  setSbar('pasteStatus','','⬡ Cleared.');
+  document.getElementById('pasteArea').value = '';
+  document.getElementById('pastePbText').textContent = '';
+  document.getElementById('pasteCharCount').textContent = '0 characters';
+  document.getElementById('pasteProg').style.width = '0%';
+  document.getElementById('paste-prog').textContent = '0%';
+  document.getElementById('paste-chars').textContent = '0';
+  document.getElementById('pasteTypeBtn').style.opacity = '.4';
+  setSbar('pasteStatus', '', '⬡ Cleared.');
 }
+
 
 /* ─── RESET CAPTURE ─────────────────────────────────────── */
-function resetCapture(silent=false){
-  if(!silent) playBtnClick();
-  inputBox.value='';
-  timestamps=[]; keysTyped=0; errors=0; startTime=null;
+function resetCapture(silent = false) {
+  if (!silent) playBtnClick();
+  if (inputBox) inputBox.value = '';
+  timestamps = []; keysTyped = 0; errors = 0; startTime = null;
   renderChars('');
-  document.getElementById('pFill').style.width='0%';
-  document.getElementById('pPct').textContent='0%';
-  ['lWpm','lKeys','lErr'].forEach(id=>document.getElementById(id).textContent='0');
-  document.getElementById('lAcc').textContent='—';
-  document.getElementById('rhythmBars').innerHTML='<span style="color:var(--muted);font-size:11px">No data yet — start typing.</span>';
-  if(!silent) setSbar('capStatus','','⬡ Reset. Type the sentence to begin.');
+  document.getElementById('pFill').style.width = '0%';
+  document.getElementById('pPct').textContent = '0%';
+  ['lWpm', 'lKeys', 'lErr'].forEach(id => document.getElementById(id).textContent = '0');
+  document.getElementById('lAcc').textContent = '—';
+  document.getElementById('rhythmBars').innerHTML = '<span style="color:var(--muted);font-size:11px">No data yet — start typing.</span>';
+  if (!silent) setSbar('capStatus', '', '⬡ Reset. Type the sentence to begin.');
 }
+
 
 /* ─── PROFILE ───────────────────────────────────────────── */
-function saveProfile(wpm,acc,avg){
-  let p=JSON.parse(localStorage.getItem('htie_v3')||'{}');
-  if(!p.id) p.id='USR-'+Math.random().toString(36).substr(2,8).toUpperCase();
-  p.sessions=(p.sessions||0)+1;
-  p.totalWpm=((p.totalWpm||0)*(p.sessions-1)+wpm)/p.sessions;
-  p.bestWpm=Math.max(p.bestWpm||0,wpm);
-  p.totalAcc=((p.totalAcc||0)*(p.sessions-1)+acc)/p.sessions;
-  p.sigDelay=avg; p.lastUpdate=new Date().toISOString();
-  localStorage.setItem('htie_v3',JSON.stringify(p));
+function saveProfile(wpm, acc, avg) {
+  let p = JSON.parse(localStorage.getItem('htie_v3') || '{}');
+  if (!p.id) p.id = 'USR-' + Math.random().toString(36).substr(2, 8).toUpperCase();
+  p.sessions = (p.sessions || 0) + 1;
+  p.totalWpm = ((p.totalWpm || 0) * (p.sessions - 1) + wpm) / p.sessions;
+  p.bestWpm = Math.max(p.bestWpm || 0, wpm);
+  p.totalAcc = ((p.totalAcc || 0) * (p.sessions - 1) + acc) / p.sessions;
+  p.sigDelay = avg; p.lastUpdate = new Date().toISOString();
+  localStorage.setItem('htie_v3', JSON.stringify(p));
   renderProfile(p);
 }
-function loadProfile(){
-  const p=JSON.parse(localStorage.getItem('htie_v3')||'{}');
-  if(p.id) renderProfile(p);
+function loadProfile() {
+  const p = JSON.parse(localStorage.getItem('htie_v3') || '{}');
+  if (p.id) renderProfile(p);
 }
-function renderProfile(p){
-  document.getElementById('p-id').textContent=p.id||'—';
-  document.getElementById('p-sess').textContent=p.sessions||'—';
-  document.getElementById('p-wpm').textContent=Math.round(p.totalWpm||0);
-  document.getElementById('p-best').textContent=p.bestWpm||'—';
-  document.getElementById('p-acc').textContent=Math.round(p.totalAcc||0)+'%';
-  document.getElementById('p-sig').innerHTML=(p.sigDelay||'—')+'<span> ms</span>';
-  document.getElementById('profileJSON').textContent=JSON.stringify(p,null,2);
-  setSbar('profileStatus','ok',`✓ ${p.sessions} session(s) recorded.`);
+function renderProfile(p) {
+  document.getElementById('p-id').textContent = p.id || '—';
+  document.getElementById('p-sess').textContent = p.sessions || '—';
+  document.getElementById('p-wpm').textContent = Math.round(p.totalWpm || 0);
+  document.getElementById('p-best').textContent = p.bestWpm || '—';
+  document.getElementById('p-acc').textContent = Math.round(p.totalAcc || 0) + '%';
+  document.getElementById('p-sig').innerHTML = (p.sigDelay || '—') + '<span> ms</span>';
+  document.getElementById('profileJSON').textContent = JSON.stringify(p, null, 2);
+  setSbar('profileStatus', 'ok', `✓ ${p.sessions} session(s) recorded.`);
 }
-function exportProfile(){
+function exportProfile() {
   playBtnClick();
-  const blob=new Blob([localStorage.getItem('htie_v3')||'{}'],{type:'application/json'});
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob); a.download='htie_profile.json'; a.click();
+  const blob = new Blob([localStorage.getItem('htie_v3') || '{}'], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = 'htie_profile.json'; a.click();
 }
-function clearProfile(){
+function clearProfile() {
   playBtnClick(); localStorage.removeItem('htie_v3');
-  ['p-id','p-sess','p-wpm','p-best','p-acc'].forEach(id=>document.getElementById(id).textContent='—');
-  document.getElementById('p-sig').innerHTML='—<span> ms</span>';
-  document.getElementById('profileJSON').textContent='No data yet.';
-  setSbar('profileStatus','warn','⊗ Profile cleared.');
+  ['p-id', 'p-sess', 'p-wpm', 'p-best', 'p-acc'].forEach(id => document.getElementById(id).textContent = '—');
+  document.getElementById('p-sig').innerHTML = '—<span> ms</span>';
+  document.getElementById('profileJSON').textContent = 'No data yet.';
+  setSbar('profileStatus', 'warn', '⊗ Profile cleared.');
 }
 
-/* ─── UTIL ──────────────────────────────────────────────── */
-function setSbar(id,type,msg){
-  const el=document.getElementById(id);
-  el.className='sbar'+(type?' '+type:'');
-  el.textContent=msg;
+
+/* ─── UTILITY ───────────────────────────────────────────── */
+function setSbar(id, type, msg) {
+  const el = document.getElementById(id);
+  el.className = 'sbar' + (type ? ' ' + type : '');
+  el.textContent = msg;
 }
 
-/* ─── INIT ──────────────────────────────────────────────── */
-// setupPWA() is called here — completely isolated from all
-// other app logic. To reuse in another project: copy only
-// the PWA ISOLATED MODULE block above + this one line.
-document.addEventListener('DOMContentLoaded', () => {
-  setupPWA();
-});
 </script>
+
 </body>
 </html>
