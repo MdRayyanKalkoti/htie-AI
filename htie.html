@@ -1,0 +1,1219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#060b12">
+<meta name="description" content="Human Typing Intelligence Engine — Learn and replicate your unique typing style with AI.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="HTIE">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%23060b12'/%3E%3Cpolyline points='30 65 50 45 30 25' stroke='%2300ffb4' stroke-width='6' fill='none' stroke-linecap='round'/%3E%3Cline x1='55' y1='75' x2='80' y2='75' stroke='%2300ffb4' stroke-width='6' stroke-linecap='round'/%3E%3C/svg%3E">
+<title>HTIE v3 — Human Typing Intelligence Engine</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#060b12;--surface:#0d1724;--s2:#111e30;
+  --b:rgba(0,255,180,.13);--b2:rgba(0,184,255,.13);--b3:rgba(167,139,250,.13);
+  --a:#00ffb4;--a2:#00b8ff;--w:#ff6b35;--p:#a78bfa;--gold:#f59e0b;
+  --dim:#2a3a4a;--text:#c8d8e8;--muted:#4a6070;
+  --glow:0 0 20px rgba(0,255,180,.22);
+  --mono:'Space Mono',monospace;--disp:'Syne',sans-serif;
+  --r:10px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13px;line-height:1.6;min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,255,180,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,180,.025) 1px,transparent 1px);background-size:44px 44px;pointer-events:none;z-index:0}
+body::after{content:'';position:fixed;top:-100%;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--a),transparent);opacity:.4;animation:scan 7s linear infinite;pointer-events:none;z-index:9999}
+@keyframes scan{to{top:200%}}
+
+.shell{position:relative;z-index:1;max-width:1120px;margin:0 auto;padding:24px 18px 80px}
+
+/* ── PWA INSTALL BAR ─────────────────────────────────────── */
+#pwaBar{
+  display:none;align-items:center;gap:12px;flex-wrap:wrap;
+  background:linear-gradient(135deg,rgba(245,158,11,.12),rgba(0,255,180,.08));
+  border:1px solid rgba(245,158,11,.35);border-radius:10px;
+  padding:12px 18px;margin-bottom:16px;
+  animation:fadein .4s ease;
+}
+#pwaBar.show{display:flex}
+.pwa-icon{font-size:22px;flex-shrink:0}
+.pwa-text{flex:1;min-width:160px}
+.pwa-title{font-family:var(--disp);font-size:13px;font-weight:700;color:var(--gold)}
+.pwa-sub{font-size:10px;color:var(--muted);letter-spacing:.5px;margin-top:1px}
+.pwa-install-btn{
+  background:linear-gradient(135deg,var(--gold),#d97706);
+  border:none;border-radius:8px;padding:9px 18px;
+  color:#000;font-family:var(--mono);font-size:10px;font-weight:700;
+  letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;
+  transition:all .2s;flex-shrink:0;
+  box-shadow:0 0 16px rgba(245,158,11,.3);
+}
+.pwa-install-btn:hover{transform:translateY(-1px);box-shadow:0 0 24px rgba(245,158,11,.5)}
+.pwa-install-btn:active{transform:translateY(0)}
+.pwa-dismiss{background:none;border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:9px 12px;color:var(--muted);font-size:10px;cursor:pointer;letter-spacing:1px;font-family:var(--mono);transition:all .2s;white-space:nowrap}
+.pwa-dismiss:hover{color:var(--text)}
+
+/* ── HEADER ──────────────────────────────────────────────── */
+header{display:flex;align-items:center;justify-content:space-between;padding-bottom:18px;border-bottom:1px solid var(--b);margin-bottom:18px;flex-wrap:wrap;gap:12px}
+.logo{display:flex;align-items:center;gap:12px}
+.logo-icon{width:42px;height:42px;border:1.5px solid var(--a);border-radius:9px;display:grid;place-items:center;box-shadow:var(--glow);overflow:hidden;flex-shrink:0}
+.logo-icon svg{width:22px;height:22px;fill:none;stroke:var(--a);stroke-width:1.5}
+.brand{font-family:var(--disp);font-size:20px;font-weight:800;color:#fff;letter-spacing:-.5px}
+.brand-sub{font-size:9px;color:var(--muted);letter-spacing:2.5px;text-transform:uppercase}
+.hright{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.badge{display:flex;align-items:center;gap:7px;font-size:10px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--dim);transition:all .4s}
+.dot.on{background:var(--a);box-shadow:0 0 8px var(--a)}
+@keyframes bdot{0%,100%{opacity:1}50%{opacity:.25}}
+.dot.blink{animation:bdot 1.4s ease-in-out infinite}
+.profile-chip{background:rgba(0,255,180,.07);border:1px solid rgba(0,255,180,.2);border-radius:20px;padding:4px 12px;font-size:10px;color:var(--a);letter-spacing:1px;display:none}
+.profile-chip.show{display:block}
+
+/* ── TABS ────────────────────────────────────────────────── */
+.tabs{display:flex;gap:3px;margin-bottom:18px;background:var(--surface);padding:4px;border-radius:11px;border:1px solid var(--b);overflow-x:auto;-webkit-overflow-scrolling:touch}
+.tab{flex:1;min-width:72px;padding:9px 7px;background:none;border:none;color:var(--muted);font-family:var(--mono);font-size:10px;letter-spacing:1.2px;text-transform:uppercase;cursor:pointer;border-radius:8px;transition:all .2s;white-space:nowrap;outline:none}
+.tab:hover{color:var(--text)}
+.tab.active{background:rgba(0,255,180,.09);color:var(--a);border:1px solid rgba(0,255,180,.22);box-shadow:0 0 14px rgba(0,255,180,.1)}
+
+/* ── PANELS ──────────────────────────────────────────────── */
+.panel{display:none}
+.panel.active{display:block;animation:fadein .3s ease}
+@keyframes fadein{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── CARDS ───────────────────────────────────────────────── */
+.card{background:var(--surface);border:1px solid var(--b);border-radius:var(--r);padding:20px;margin-bottom:12px}
+.card.blue{border-color:var(--b2)}.card.purple{border-color:var(--b3)}
+.card-title{font-family:var(--disp);font-size:10px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:var(--a);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.card-title.blue{color:var(--a2)}.card-title.purple{color:var(--p)}
+.card-title::before{content:'';display:block;width:2.5px;height:13px;background:currentColor;border-radius:2px}
+
+/* ── SENTENCE BOX ────────────────────────────────────────── */
+.sentence-wrap{position:relative;margin-bottom:12px}
+.target-box{background:rgba(0,255,180,.025);border:1px dashed rgba(0,255,180,.2);border-radius:8px;padding:14px 18px 14px 18px;position:relative;font-size:15px;color:#fff;letter-spacing:.3px;line-height:2.1;padding-right:130px}
+.target-label{position:absolute;top:-9px;left:12px;background:var(--surface);padding:0 8px;font-size:9px;color:var(--a);letter-spacing:2px;text-transform:uppercase}
+.new-sentence-btn{
+  position:absolute;right:12px;top:50%;transform:translateY(-50%);
+  background:rgba(0,255,180,.09);border:1px solid rgba(0,255,180,.28);
+  border-radius:7px;padding:7px 13px;color:var(--a);font-family:var(--mono);
+  font-size:9px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;
+  transition:all .2s;white-space:nowrap;outline:none;display:flex;align-items:center;gap:6px
+}
+.new-sentence-btn:hover{background:rgba(0,255,180,.16);box-shadow:var(--glow)}
+.new-sentence-btn:active{transform:translateY(-50%) scale(.97)}
+.sentence-counter{font-size:9px;color:var(--muted);margin-top:5px;text-align:right;letter-spacing:1px}
+
+/* char highlight */
+.ch-pending{color:var(--dim)}.ch-correct{color:var(--a)}.ch-wrong{color:var(--w);background:rgba(255,107,53,.1);border-radius:2px}
+.ch-cursor{border-left:2px solid var(--a2);animation:cblink 1s step-end infinite}
+@keyframes cblink{50%{border-color:transparent}}
+
+/* ── TEXTAREA ────────────────────────────────────────────── */
+.type-area{width:100%;background:rgba(0,0,0,.45);border:1px solid var(--b);border-radius:8px;padding:13px;color:var(--text);font-family:var(--mono);font-size:14px;resize:none;height:78px;outline:none;transition:border-color .2s,box-shadow .2s}
+.type-area:focus{border-color:rgba(0,255,180,.4);box-shadow:0 0 0 3px rgba(0,255,180,.06)}
+
+/* ── PROGRESS ────────────────────────────────────────────── */
+.prog-wrap{margin:10px 0}
+.prog-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-bottom:4px;letter-spacing:1px}
+.prog-track{height:3px;background:rgba(255,255,255,.05);border-radius:4px;overflow:hidden}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--a),var(--a2));border-radius:4px;transition:width .12s;box-shadow:0 0 8px var(--a)}
+
+/* ── METRICS ─────────────────────────────────────────────── */
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0}
+.metric{background:rgba(0,0,0,.35);border:1px solid var(--b);border-radius:8px;padding:10px 10px;text-align:center}
+.mv{font-family:var(--disp);font-size:23px;font-weight:800;color:var(--a);line-height:1;margin-bottom:3px}
+.mv.blue{color:var(--a2)}.mv.warn{color:var(--w)}.mv.purple{color:var(--p)}.mv.gold{color:var(--gold)}
+.ml{font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase}
+
+/* ── BUTTONS ─────────────────────────────────────────────── */
+.btn-row{display:flex;gap:8px;flex-wrap:wrap}
+.btn{flex:1;min-width:90px;padding:11px 9px;border:1px solid var(--b);border-radius:8px;background:var(--surface);color:var(--muted);font-family:var(--mono);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;transition:all .18s;opacity:.5;position:relative;overflow:hidden;outline:none}
+.btn::after{content:'';position:absolute;inset:0;background:radial-gradient(circle at center,rgba(255,255,255,.15) 0%,transparent 70%);opacity:0;transition:opacity .12s}
+.btn:active::after{opacity:1}
+.btn.on{opacity:1}
+.btn.g.on{background:rgba(0,255,180,.09);border-color:rgba(0,255,180,.35);color:var(--a);box-shadow:0 0 14px rgba(0,255,180,.1)}
+.btn.b.on{background:rgba(0,184,255,.09);border-color:rgba(0,184,255,.35);color:var(--a2);box-shadow:0 0 14px rgba(0,184,255,.1)}
+.btn.pu.on{background:rgba(167,139,250,.09);border-color:rgba(167,139,250,.35);color:var(--p);box-shadow:0 0 14px rgba(167,139,250,.1)}
+.btn.o.on{background:rgba(255,107,53,.09);border-color:rgba(255,107,53,.35);color:var(--w)}
+.btn.ico{min-width:42px;flex:none;font-size:16px;letter-spacing:0;padding:10px 13px}
+
+/* ── STATUS BAR ──────────────────────────────────────────── */
+.sbar{margin-top:10px;padding:9px 13px;border-radius:6px;border:1px solid var(--b);background:rgba(0,0,0,.3);font-size:11px;color:var(--muted);letter-spacing:.5px;transition:all .3s}
+.sbar.ok{border-color:rgba(0,255,180,.25);color:var(--a)}.sbar.warn{border-color:rgba(255,107,53,.25);color:var(--w)}
+.sbar.info{border-color:rgba(0,184,255,.25);color:var(--a2)}.sbar.pu{border-color:rgba(167,139,250,.25);color:var(--p)}
+
+/* ── RHYTHM ──────────────────────────────────────────────── */
+#rhythmBars{display:flex;align-items:flex-end;gap:2px;height:56px;padding:4px 0}
+.rbar{flex:1;border-radius:2px 2px 0 0;background:var(--a);opacity:.6;min-width:3px;transition:height .25s}
+.rbar.slow{background:var(--w);opacity:.75}.rbar.fast{background:var(--a2);opacity:.8}
+
+/* ── HEATMAP ─────────────────────────────────────────────── */
+#heatmapWrap{display:flex;flex-wrap:wrap;gap:3px;padding:8px 0;min-height:28px}
+.hmc{display:inline-block;width:18px;height:18px;border-radius:3px;font-size:9px;text-align:center;line-height:18px;font-family:var(--mono)}
+
+/* ── TIPS ────────────────────────────────────────────────── */
+.tips{display:flex;flex-direction:column;gap:7px;margin-top:4px}
+.tip{display:flex;align-items:flex-start;gap:10px;padding:9px 13px;border-radius:7px;background:rgba(0,0,0,.3);border-left:2px solid var(--dim);font-size:12px;color:var(--text)}
+.tip.good{border-left-color:var(--a)}.tip.warn{border-left-color:var(--w)}.tip.info{border-left-color:var(--a2)}.tip.pu{border-left-color:var(--p)}
+.tip-i{font-size:14px;flex-shrink:0;margin-top:1px}
+
+/* ── PROFILE ─────────────────────────────────────────────── */
+.pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.pitem{background:rgba(0,0,0,.3);border:1px solid var(--b);border-radius:8px;padding:12px}
+.pkey{font-size:9px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:5px}
+.pval{font-family:var(--disp);font-size:17px;font-weight:700;color:var(--text)}
+.pval span{font-size:10px;color:var(--muted);font-family:var(--mono);font-weight:400}
+
+/* ── PLAYBACK SCREEN ─────────────────────────────────────── */
+.pb-screen{background:rgba(0,0,0,.55);border:1px solid var(--b);border-radius:10px;padding:18px 20px;min-height:64px;font-size:17px;color:var(--a);font-family:var(--mono);position:relative;letter-spacing:.4px;line-height:1.9;word-break:break-word}
+.pb-screen::before{content:'AI OUTPUT';position:absolute;top:-9px;left:16px;background:var(--surface);padding:0 8px;font-size:9px;color:var(--muted);letter-spacing:2px}
+.pb-cursor{display:inline-block;width:2px;height:18px;background:var(--a2);vertical-align:middle;margin-left:1px;animation:cblink .8s step-end infinite}
+
+/* ── STYLE CARDS ─────────────────────────────────────────── */
+.style-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:14px}
+.scard{background:rgba(0,0,0,.3);border:1px solid var(--b);border-radius:9px;padding:11px 7px;text-align:center;cursor:pointer;transition:all .2s;outline:none}
+.scard:hover{border-color:rgba(0,255,180,.3)}
+.scard.sel{border-color:var(--a);background:rgba(0,255,180,.06);box-shadow:var(--glow)}
+.scard .si{font-size:21px;margin-bottom:5px}
+.scard .sn{font-size:9px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase}
+.scard.sel .sn{color:var(--a)}
+
+/* ── SLIDER ──────────────────────────────────────────────── */
+.slrow{display:flex;align-items:center;gap:11px;margin:10px 0}
+.slrow label{font-size:9px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;white-space:nowrap}
+input[type=range]{flex:1;accent-color:var(--a);cursor:pointer}
+.slval{font-family:var(--disp);font-size:15px;color:var(--a);font-weight:700;min-width:44px;text-align:right}
+
+/* ── SPEECH ──────────────────────────────────────────────── */
+.speech-ring{width:88px;height:88px;border-radius:50%;border:2px solid rgba(167,139,250,.3);display:grid;place-items:center;margin:0 auto 12px;cursor:pointer;transition:all .3s;background:rgba(167,139,250,.04)}
+.speech-ring.listening{border-color:var(--p);animation:ripple 1.4s ease-out infinite}
+.speech-ring svg{width:30px;height:30px;fill:none;stroke:var(--p);stroke-width:1.5}
+.speech-ring.listening svg{stroke:#fff}
+@keyframes ripple{0%{box-shadow:0 0 0 0 rgba(167,139,250,.4)}70%{box-shadow:0 0 0 20px rgba(167,139,250,0)}100%{box-shadow:0 0 0 0 rgba(167,139,250,0)}}
+.transcript-box{background:rgba(167,139,250,.04);border:1px solid rgba(167,139,250,.15);border-radius:8px;padding:12px 16px;min-height:50px;font-size:15px;color:#fff;letter-spacing:.3px;margin:12px 0;line-height:1.8;word-break:break-word}
+.placeholder-t{color:var(--muted);font-size:12px}
+.wave-bars{display:flex;align-items:center;justify-content:center;gap:3px;height:22px;margin:4px 0}
+.wbar{width:3px;border-radius:2px;background:var(--p);opacity:.5}
+.wbar.active{animation:wanim .8s ease-in-out infinite}
+.wbar:nth-child(1){animation-delay:0s}.wbar:nth-child(2){animation-delay:.1s}.wbar:nth-child(3){animation-delay:.2s}
+.wbar:nth-child(4){animation-delay:.3s}.wbar:nth-child(5){animation-delay:.4s}.wbar:nth-child(6){animation-delay:.3s}
+.wbar:nth-child(7){animation-delay:.2s}.wbar:nth-child(8){animation-delay:.1s}.wbar:nth-child(9){animation-delay:0s}
+@keyframes wanim{0%,100%{height:4px;opacity:.4}50%{height:20px;opacity:1}}
+
+/* ── GEN SENTENCE ────────────────────────────────────────── */
+.gen-box{background:rgba(0,184,255,.025);border:1px solid rgba(0,184,255,.18);border-radius:8px;padding:14px 18px;margin-bottom:12px;font-size:15px;color:#fff;line-height:1.9;min-height:52px;position:relative}
+.gen-label{position:absolute;top:-9px;left:12px;background:var(--surface);padding:0 8px;font-size:9px;color:var(--a2);letter-spacing:2px;text-transform:uppercase}
+
+/* ── PASTE ───────────────────────────────────────────────── */
+.paste-area{width:100%;background:rgba(0,0,0,.4);border:1px solid var(--b2);border-radius:8px;padding:13px;color:var(--text);font-family:var(--mono);font-size:13px;resize:none;height:88px;outline:none;transition:border-color .2s}
+.paste-area:focus{border-color:rgba(0,184,255,.4)}
+
+/* ── LEARNED BANNER ──────────────────────────────────────── */
+.lbanner{display:none;background:linear-gradient(135deg,rgba(0,255,180,.1),rgba(0,184,255,.07));border:1px solid rgba(0,255,180,.25);border-radius:9px;padding:13px 16px;margin-bottom:14px;align-items:center;gap:12px}
+.lbanner.show{display:flex}
+.lbt-title{font-family:var(--disp);font-size:13px;font-weight:700;color:var(--a)}
+.lbt-sub{font-size:10px;color:var(--muted);margin-top:2px;letter-spacing:.5px}
+.auto-chip{display:inline-flex;align-items:center;gap:5px;background:rgba(0,255,180,.08);border:1px solid rgba(0,255,180,.2);border-radius:20px;padding:3px 10px;font-size:9px;color:var(--a);letter-spacing:1.5px;text-transform:uppercase}
+
+/* ── TWO COL ─────────────────────────────────────────────── */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+
+/* ── FOOTER ──────────────────────────────────────────────── */
+footer{text-align:center;margin-top:36px;padding-top:16px;border-top:1px solid var(--b);font-size:9px;color:var(--muted);letter-spacing:2.5px;text-transform:uppercase}
+
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--dim);border-radius:4px}
+
+@media(max-width:640px){
+  .metrics{grid-template-columns:repeat(2,1fr)}
+  .pgrid{grid-template-columns:repeat(2,1fr)}
+  .style-grid{grid-template-columns:repeat(3,1fr)}
+  .two-col{grid-template-columns:1fr}
+  .target-box{padding-right:18px}
+  .new-sentence-btn{position:static;transform:none;margin-top:10px;width:100%;justify-content:center}
+}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- ══ PWA INSTALL BAR ══ -->
+<div id="pwaBar">
+  <div class="pwa-icon">📲</div>
+  <div class="pwa-text">
+    <div class="pwa-title">Install HTIE App</div>
+    <div class="pwa-sub">Add to your home screen — works offline, no browser UI</div>
+  </div>
+  <button class="pwa-install-btn" id="pwaInstallBtn" onclick="installPWA()">⬇ Install App</button>
+  <button class="pwa-dismiss" onclick="dismissPWA()">✕ Not now</button>
+</div>
+
+<!-- ══ HEADER ══ -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+    </div>
+    <div>
+      <div class="brand">HTIE <span style="font-size:12px;font-weight:400;color:var(--muted)">v3</span></div>
+      <div class="brand-sub">Human Typing Intelligence Engine</div>
+    </div>
+  </div>
+  <div class="hright">
+    <div class="badge"><div class="dot on blink" id="hDot"></div><span id="hStatus">READY</span></div>
+    <div class="profile-chip" id="profileChip">🧠 STYLE LEARNED</div>
+  </div>
+</header>
+
+<!-- ══ LEARNED BANNER ══ -->
+<div class="lbanner" id="learnedBanner">
+  <div style="font-size:24px">🧠</div>
+  <div style="flex:1">
+    <div class="lbt-title">Your Typing Style Is Active</div>
+    <div class="lbt-sub" id="learnedDesc">All tools now use your learned style automatically.</div>
+  </div>
+  <span class="auto-chip">● AUTO</span>
+</div>
+
+<!-- ══ TABS ══ -->
+<div class="tabs">
+  <button class="tab active" onclick="goTab('capture')">① Capture</button>
+  <button class="tab" onclick="goTab('analysis')">② Analysis</button>
+  <button class="tab" onclick="goTab('playback')">③ Playback</button>
+  <button class="tab" onclick="goTab('speech')">🎙 Speech</button>
+  <button class="tab" onclick="goTab('generate')">✦ Generate</button>
+  <button class="tab" onclick="goTab('paste')">⌘ Paste</button>
+  <button class="tab" onclick="goTab('profile')">◈ Profile</button>
+</div>
+
+<!-- ════════════════════════════ TAB 1: CAPTURE ════════════════════════════ -->
+<div class="panel active" id="tab-capture">
+  <div class="card">
+    <div class="card-title">Type the Target Sentence</div>
+
+    <div class="sentence-wrap">
+      <div class="target-box">
+        <span class="target-label">TYPE EXACTLY</span>
+        <div id="charDisplay"></div>
+        <button class="new-sentence-btn" onclick="newSentence()" title="Get a new sentence to type">
+          <span>↻</span> New Sentence
+        </button>
+      </div>
+      <div class="sentence-counter" id="sentenceCounter">Sentence 1 of 20</div>
+    </div>
+
+    <div class="prog-wrap">
+      <div class="prog-labels"><span>COMPLETION</span><span id="pPct">0%</span></div>
+      <div class="prog-track"><div class="prog-fill" id="pFill" style="width:0%"></div></div>
+    </div>
+    <textarea class="type-area" id="inputBox" placeholder="Begin typing the sentence above…" spellcheck="false" autocomplete="off" autocorrect="off"></textarea>
+    <div class="metrics">
+      <div class="metric"><div class="mv" id="lWpm">0</div><div class="ml">WPM</div></div>
+      <div class="metric"><div class="mv blue" id="lAcc">—</div><div class="ml">Accuracy</div></div>
+      <div class="metric"><div class="mv" id="lKeys">0</div><div class="ml">Keystrokes</div></div>
+      <div class="metric"><div class="mv warn" id="lErr">0</div><div class="ml">Errors</div></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn g on" onclick="runAnalysis()">▶ Analyze &amp; Learn Style</button>
+      <button class="btn o on" onclick="resetCapture()">↺ Reset</button>
+    </div>
+    <div class="sbar" id="capStatus">⬡ Type the sentence to begin behavioral capture.</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Keystroke Rhythm</div>
+    <div id="rhythmBars"><span style="color:var(--muted);font-size:11px">No data yet — start typing.</span></div>
+    <div style="font-size:10px;color:var(--muted);margin-top:7px;letter-spacing:1px">
+      <span style="color:var(--a2)">■</span> fast &nbsp;·&nbsp;
+      <span style="color:var(--a)">■</span> normal &nbsp;·&nbsp;
+      <span style="color:var(--w)">■</span> slow/pause
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════ TAB 2: ANALYSIS ═══════════════════════════ -->
+<div class="panel" id="tab-analysis">
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">Behavioral Metrics</div>
+      <div class="pgrid">
+        <div class="pitem"><div class="pkey">Avg WPM</div><div class="pval" id="m-wpm">—</div></div>
+        <div class="pitem"><div class="pkey">Accuracy</div><div class="pval" id="m-acc">—</div></div>
+        <div class="pitem"><div class="pkey">Avg Delay</div><div class="pval" id="m-delay">—<span> ms</span></div></div>
+        <div class="pitem"><div class="pkey">Max Pause</div><div class="pval" id="m-maxp">—<span> ms</span></div></div>
+        <div class="pitem"><div class="pkey">Duration</div><div class="pval" id="m-time">—<span> s</span></div></div>
+        <div class="pitem"><div class="pkey">Style Class</div><div class="pval" id="m-class" style="font-size:12px">—</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Keystroke Heatmap</div>
+      <div id="heatmapWrap"><span style="color:var(--muted);font-size:11px">Run analysis first.</span></div>
+      <div style="font-size:10px;color:var(--muted);margin-top:9px;letter-spacing:1px">Color intensity = delay per key. Warmer = slower.</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">AI Coach — Improvement Tips</div>
+    <div class="tips" id="tipsBox"><div style="color:var(--muted);font-size:12px">No analysis run yet.</div></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════ TAB 3: PLAYBACK ═══════════════════════════ -->
+<div class="panel" id="tab-playback">
+  <div class="card">
+    <div class="card-title">Playback Style</div>
+    <div class="style-grid">
+      <div class="scard sel" data-style="learned" onclick="selStyle(this)"><div class="si">🧠</div><div class="sn">My Style</div></div>
+      <div class="scard" data-style="slow"    onclick="selStyle(this)"><div class="si">🐢</div><div class="sn">Slow</div></div>
+      <div class="scard" data-style="fast"    onclick="selStyle(this)"><div class="si">⚡</div><div class="sn">Fast</div></div>
+      <div class="scard" data-style="formal"  onclick="selStyle(this)"><div class="si">🏛</div><div class="sn">Formal</div></div>
+      <div class="scard" data-style="erratic" onclick="selStyle(this)"><div class="si">🎲</div><div class="sn">Erratic</div></div>
+    </div>
+    <div class="slrow">
+      <label>Speed Override</label>
+      <input type="range" id="delaySlider" min="30" max="600" value="120" oninput="updDelay()">
+      <div class="slval" id="delayVal">120ms</div>
+    </div>
+    <div class="btn-row">
+      <button class="btn g on" onclick="startPB()">▶ Start AI Typing</button>
+      <button class="btn o on" onclick="stopPB()">■ Stop</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">AI Output</div>
+    <div class="pb-screen"><span id="pbText"></span><span class="pb-cursor" id="pbCursor" style="display:none"></span></div>
+    <div class="metrics" style="margin-top:12px">
+      <div class="metric"><div class="mv blue" id="pb-prog">0%</div><div class="ml">Progress</div></div>
+      <div class="metric"><div class="mv" id="pb-delay">—</div><div class="ml">Delay ms</div></div>
+      <div class="metric"><div class="mv" id="pb-chars">0</div><div class="ml">Chars Out</div></div>
+      <div class="metric"><div class="mv purple" id="pb-style">—</div><div class="ml">Style</div></div>
+    </div>
+    <div class="sbar" id="pbStatus">⬡ Select a style and press Start.</div>
+  </div>
+</div>
+
+<!-- ════════════════════════════ TAB 4: SPEECH ═════════════════════════════ -->
+<div class="panel" id="tab-speech">
+  <div class="card purple">
+    <div class="card-title purple">🎙 Speech → AI Types In Your Style</div>
+    <div style="text-align:center;padding:8px 0 2px">
+      <div class="speech-ring" id="speechRing" onclick="toggleSpeech()">
+        <svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="17" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>
+      </div>
+      <div class="wave-bars" id="waveBars">
+        <div class="wbar" style="height:4px"></div><div class="wbar" style="height:4px"></div>
+        <div class="wbar" style="height:4px"></div><div class="wbar" style="height:4px"></div>
+        <div class="wbar" style="height:4px"></div><div class="wbar" style="height:4px"></div>
+        <div class="wbar" style="height:4px"></div><div class="wbar" style="height:4px"></div>
+        <div class="wbar" style="height:4px"></div>
+      </div>
+      <div style="font-size:10px;color:var(--muted);letter-spacing:1.5px;margin-top:3px" id="speechHint">TAP MIC TO SPEAK</div>
+    </div>
+    <div class="transcript-box" id="transcriptBox"><span class="placeholder-t">Your spoken words will appear here…</span></div>
+    <div class="sbar pu" id="speechStatus">⬡ Tap the microphone to begin. AI will type in your learned style.</div>
+    <div class="btn-row" style="margin-top:12px">
+      <button class="btn pu on" id="speechTypeBtn" onclick="typeSpeech()" style="opacity:.4">▶ AI Type My Words</button>
+      <button class="btn o on" id="speechStopBtn" onclick="stopSpeechType()" style="opacity:.4">■ Stop</button>
+      <button class="btn o on" onclick="clearSpeech()">⊗ Clear</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">AI Output — Your Words</div>
+    <div class="pb-screen"><span id="speechPbText"></span><span class="pb-cursor" id="speechCursor" style="display:none"></span></div>
+    <div class="sbar" id="speechPbStatus">⬡ Speak, then press AI Type My Words.</div>
+  </div>
+</div>
+
+<!-- ════════════════════════════ TAB 5: GENERATE ═══════════════════════════ -->
+<div class="panel" id="tab-generate">
+  <div class="card blue">
+    <div class="card-title blue">✦ Generate Sentences &amp; Auto-Type</div>
+    <div style="margin-bottom:10px;font-size:11px;color:var(--muted);letter-spacing:.5px">
+      Pick a topic — AI generates a sentence and auto-types it in your learned style.
+    </div>
+    <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px">
+      <button class="btn b on ico" onclick="genSentence('random')" title="Random">🎲</button>
+      <button class="btn b on" onclick="genSentence('tech')">Tech</button>
+      <button class="btn b on" onclick="genSentence('story')">Story</button>
+      <button class="btn b on" onclick="genSentence('science')">Science</button>
+      <button class="btn b on" onclick="genSentence('business')">Business</button>
+      <button class="btn b on" onclick="genSentence('philosophy')">Philosophy</button>
+      <button class="btn b on" onclick="genSentence('casual')">Casual</button>
+    </div>
+    <div class="gen-box" id="genSentenceBox">
+      <span class="gen-label">GENERATED SENTENCE</span>
+      <span id="genText" style="color:var(--muted);font-size:12px">Press a category above to generate a sentence.</span>
+    </div>
+    <div class="btn-row">
+      <button class="btn g on" id="genTypeBtn" onclick="typeGenSentence()" style="opacity:.4">▶ Auto-Type Using My Style</button>
+      <button class="btn o on" id="genStopBtn" onclick="stopGen()" style="opacity:.4">■ Stop</button>
+      <button class="btn b on" onclick="genSentence('random')">↻ New Sentence</button>
+    </div>
+    <div class="sbar" id="genStatus">⬡ Select a category to generate.</div>
+  </div>
+  <div class="card">
+    <div class="card-title">AI Output</div>
+    <div class="pb-screen"><span id="genPbText"></span><span class="pb-cursor" id="genCursor" style="display:none"></span></div>
+    <div class="metrics" style="margin-top:12px">
+      <div class="metric"><div class="mv blue" id="gen-prog">0%</div><div class="ml">Progress</div></div>
+      <div class="metric"><div class="mv" id="gen-wpm">—</div><div class="ml">Est. WPM</div></div>
+      <div class="metric"><div class="mv purple" id="gen-topic">—</div><div class="ml">Topic</div></div>
+      <div class="metric"><div class="mv" id="gen-chars">0</div><div class="ml">Chars</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════ TAB 6: PASTE ══════════════════════════════ -->
+<div class="panel" id="tab-paste">
+  <div class="card blue">
+    <div class="card-title blue">⌘ Paste Text → AI Types In Your Style</div>
+    <div style="margin-bottom:10px;font-size:11px;color:var(--muted);letter-spacing:.5px">
+      Paste any text. AI types it character by character using your exact learned rhythm.
+    </div>
+    <textarea class="paste-area" id="pasteArea" placeholder="Paste your text here…" oninput="pasteInput()"></textarea>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:7px;font-size:10px;color:var(--muted);letter-spacing:1px">
+      <span id="pasteCharCount">0 characters</span>
+      <span id="pasteStyleChip"></span>
+    </div>
+    <div class="btn-row" style="margin-top:12px">
+      <button class="btn g on" id="pasteTypeBtn" onclick="typePaste()" style="opacity:.4">▶ AI Type My Text</button>
+      <button class="btn o on" onclick="stopPaste()">■ Stop</button>
+      <button class="btn on" onclick="clearPaste()">⊗ Clear</button>
+    </div>
+    <div class="sbar" id="pasteStatus">⬡ Paste text above to begin.</div>
+  </div>
+  <div class="card">
+    <div class="card-title">AI Output — Typing Your Text</div>
+    <div class="pb-screen" style="min-height:100px"><span id="pastePbText"></span><span class="pb-cursor" id="pasteCursor" style="display:none"></span></div>
+    <div class="metrics" style="margin-top:12px">
+      <div class="metric"><div class="mv blue" id="paste-prog">0%</div><div class="ml">Progress</div></div>
+      <div class="metric"><div class="mv" id="paste-delay">—</div><div class="ml">Delay ms</div></div>
+      <div class="metric"><div class="mv" id="paste-chars">0</div><div class="ml">Typed</div></div>
+      <div class="metric"><div class="mv purple" id="paste-total">—</div><div class="ml">Total</div></div>
+    </div>
+    <div class="prog-wrap" style="margin-top:8px">
+      <div class="prog-track"><div class="prog-fill" id="pasteProg" style="width:0%"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════ TAB 7: PROFILE ════════════════════════════ -->
+<div class="panel" id="tab-profile">
+  <div class="card">
+    <div class="card-title">Persistent Typing Profile</div>
+    <div class="pgrid">
+      <div class="pitem"><div class="pkey">Profile ID</div><div class="pval" id="p-id" style="font-size:11px;word-break:break-all">—</div></div>
+      <div class="pitem"><div class="pkey">Sessions</div><div class="pval" id="p-sess">—</div></div>
+      <div class="pitem"><div class="pkey">Avg WPM</div><div class="pval" id="p-wpm">—</div></div>
+      <div class="pitem"><div class="pkey">Best WPM</div><div class="pval" id="p-best">—</div></div>
+      <div class="pitem"><div class="pkey">Avg Accuracy</div><div class="pval" id="p-acc">—</div></div>
+      <div class="pitem"><div class="pkey">Signature Delay</div><div class="pval" id="p-sig">—<span> ms</span></div></div>
+    </div>
+    <div class="btn-row" style="margin-top:14px">
+      <button class="btn g on" onclick="exportProfile()">↓ Export JSON</button>
+      <button class="btn o on" onclick="clearProfile()">⊗ Clear Profile</button>
+    </div>
+    <div class="sbar" id="profileStatus">⬡ Complete a capture session to build your profile.</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Raw Profile JSON</div>
+    <pre id="profileJSON" style="font-size:11px;color:var(--muted);max-height:180px;overflow-y:auto;white-space:pre-wrap">No data yet.</pre>
+  </div>
+</div>
+
+<footer>HTIE v3.0 &nbsp;·&nbsp; Behavioral Learning AI &nbsp;·&nbsp; Human–Machine Interaction</footer>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════
+   HTIE v3 — Complete Engine
+   New: rotating sentences, stop buttons everywhere, PWA
+═══════════════════════════════════════════════════════════ */
+
+/* ─── PWA ───────────────────────────────────────────────── */
+let deferredPrompt = null;
+
+// Register inline service worker for PWA
+if ('serviceWorker' in navigator) {
+  const swCode = `
+    const CACHE = 'htie-v3';
+    self.addEventListener('install', e => {
+      e.waitUntil(caches.open(CACHE).then(c => c.addAll(['/'])));
+    });
+    self.addEventListener('fetch', e => {
+      e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));
+    });
+  `;
+  const blob = new Blob([swCode], {type:'application/javascript'});
+  const swUrl = URL.createObjectURL(blob);
+  navigator.serviceWorker.register(swUrl).catch(()=>{});
+}
+
+// Inject PWA manifest
+const manifest = {
+  name: 'HTIE — Human Typing Intelligence Engine',
+  short_name: 'HTIE',
+  description: 'Learn and replicate your unique typing style with AI.',
+  start_url: '.',
+  display: 'standalone',
+  background_color: '#060b12',
+  theme_color: '#060b12',
+  icons: [{
+    src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23060b12'/%3E%3Cpolyline points='28 68 50 44 28 22' stroke='%2300ffb4' stroke-width='7' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cline x1='56' y1='76' x2='82' y2='76' stroke='%2300ffb4' stroke-width='7' stroke-linecap='round'/%3E%3C/svg%3E",
+    sizes: '512x512', type: 'image/svg+xml', purpose: 'any maskable'
+  }]
+};
+const mBlob = new Blob([JSON.stringify(manifest)], {type:'application/json'});
+const mUrl = URL.createObjectURL(mBlob);
+const mLink = document.createElement('link');
+mLink.rel='manifest'; mLink.href=mUrl;
+document.head.appendChild(mLink);
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  document.getElementById('pwaBar').classList.add('show');
+  playTabClick();
+});
+window.addEventListener('appinstalled', () => {
+  document.getElementById('pwaBar').classList.remove('show');
+  setSbar('capStatus','ok','✓ App installed successfully! You can now use HTIE offline.');
+});
+
+function installPWA() {
+  playBtnClick();
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(r => {
+      if(r.outcome==='accepted') document.getElementById('pwaBar').classList.remove('show');
+      deferredPrompt = null;
+    });
+  } else {
+    // Show manual instructions
+    alert('To install:\n• Chrome/Edge: Click ⋮ menu → "Install app"\n• iOS Safari: Tap Share → "Add to Home Screen"\n• Android: Tap ⋮ → "Add to Home screen"');
+  }
+}
+function dismissPWA() {
+  playBtnClick();
+  document.getElementById('pwaBar').classList.remove('show');
+  sessionStorage.setItem('pwa_dismissed','1');
+}
+
+/* ─── AUDIO ENGINE ──────────────────────────────────────── */
+let audioCtx = null;
+function getACtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+function playKeyClick(isError=false) {
+  try {
+    const ctx=getACtx(), t=ctx.currentTime;
+    // Noise burst
+    const buf=ctx.createBuffer(1,ctx.sampleRate*.045,ctx.sampleRate);
+    const d=buf.getChannelData(0);
+    for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*(1-i/d.length);
+    const src=ctx.createBufferSource(), ng=ctx.createGain();
+    ng.gain.setValueAtTime(isError?.2:.11,t);
+    ng.gain.exponentialRampToValueAtTime(.001,t+.05);
+    src.buffer=buf; src.connect(ng); ng.connect(ctx.destination); src.start();
+    // Tone
+    const o=ctx.createOscillator(), g=ctx.createGain();
+    o.type='square'; o.frequency.setValueAtTime(isError?160:680+Math.random()*200,t);
+    o.frequency.exponentialRampToValueAtTime(isError?75:180,t+.045);
+    g.gain.setValueAtTime(.055,t); g.gain.exponentialRampToValueAtTime(.001,t+.045);
+    o.connect(g); g.connect(ctx.destination); o.start(); o.stop(t+.05);
+  } catch(e){}
+}
+function playBtnClick() {
+  try {
+    const ctx=getACtx(), t=ctx.currentTime;
+    const o=ctx.createOscillator(), g=ctx.createGain();
+    o.type='sine'; o.frequency.setValueAtTime(430,t); o.frequency.exponentialRampToValueAtTime(270,t+.12);
+    g.gain.setValueAtTime(.2,t); g.gain.exponentialRampToValueAtTime(.001,t+.14);
+    o.connect(g); g.connect(ctx.destination); o.start(); o.stop(t+.15);
+    const o2=ctx.createOscillator(), g2=ctx.createGain();
+    o2.type='triangle'; o2.frequency.value=900;
+    g2.gain.setValueAtTime(.11,t); g2.gain.exponentialRampToValueAtTime(.001,t+.04);
+    o2.connect(g2); g2.connect(ctx.destination); o2.start(); o2.stop(t+.04);
+  } catch(e){}
+}
+function playSuccess() {
+  try {
+    const ctx=getACtx();
+    [523,659,784,1047].forEach((f,i)=>{
+      const o=ctx.createOscillator(), g=ctx.createGain(), t=ctx.currentTime+i*.1;
+      o.type='sine'; o.frequency.value=f;
+      g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.2,t+.03); g.gain.exponentialRampToValueAtTime(.001,t+.4);
+      o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t+.42);
+    });
+  } catch(e){}
+}
+function playMicOn() {
+  try {
+    const ctx=getACtx();
+    [440,550,660].forEach((f,i)=>{
+      const o=ctx.createOscillator(), g=ctx.createGain(), t=ctx.currentTime+i*.07;
+      o.type='sine'; o.frequency.value=f;
+      g.gain.setValueAtTime(.14,t); g.gain.exponentialRampToValueAtTime(.001,t+.25);
+      o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t+.27);
+    });
+  } catch(e){}
+}
+function playMicOff() {
+  try {
+    const ctx=getACtx();
+    [660,550,440].forEach((f,i)=>{
+      const o=ctx.createOscillator(), g=ctx.createGain(), t=ctx.currentTime+i*.06;
+      o.type='sine'; o.frequency.value=f;
+      g.gain.setValueAtTime(.11,t); g.gain.exponentialRampToValueAtTime(.001,t+.18);
+      o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t+.2);
+    });
+  } catch(e){}
+}
+function playAnalysisDone() {
+  try {
+    const ctx=getACtx();
+    [392,523,659,784,1047].forEach((f,i)=>{
+      const o=ctx.createOscillator(), g=ctx.createGain(), t=ctx.currentTime+i*.09;
+      o.type='triangle'; o.frequency.value=f;
+      g.gain.setValueAtTime(.16,t); g.gain.exponentialRampToValueAtTime(.001,t+.38);
+      o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t+.4);
+    });
+  } catch(e){}
+}
+function playTabClick() {
+  try {
+    const ctx=getACtx(), t=ctx.currentTime;
+    const o=ctx.createOscillator(), g=ctx.createGain();
+    o.type='sine'; o.frequency.setValueAtTime(600,t); o.frequency.exponentialRampToValueAtTime(400,t+.09);
+    g.gain.setValueAtTime(.09,t); g.gain.exponentialRampToValueAtTime(.001,t+.1);
+    o.connect(g); g.connect(ctx.destination); o.start(); o.stop(t+.11);
+  } catch(e){}
+}
+function playStop() {
+  try {
+    const ctx=getACtx(), t=ctx.currentTime;
+    const o=ctx.createOscillator(), g=ctx.createGain();
+    o.type='sawtooth'; o.frequency.setValueAtTime(300,t); o.frequency.exponentialRampToValueAtTime(80,t+.15);
+    g.gain.setValueAtTime(.18,t); g.gain.exponentialRampToValueAtTime(.001,t+.18);
+    o.connect(g); g.connect(ctx.destination); o.start(); o.stop(t+.2);
+  } catch(e){}
+}
+function playNewSentence() {
+  try {
+    const ctx=getACtx();
+    [660,880].forEach((f,i)=>{
+      const o=ctx.createOscillator(), g=ctx.createGain(), t=ctx.currentTime+i*.08;
+      o.type='sine'; o.frequency.value=f;
+      g.gain.setValueAtTime(.12,t); g.gain.exponentialRampToValueAtTime(.001,t+.22);
+      o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t+.24);
+    });
+  } catch(e){}
+}
+
+// Unlock AudioCtx on any interaction
+document.addEventListener('click', ()=>{ try{getACtx();}catch(e){} }, {once:false, passive:true});
+
+/* ─── SENTENCE POOL ─────────────────────────────────────── */
+const SENTENCES = [
+  "I will complete the project and send the final update by tomorrow evening.",
+  "The quick brown fox jumps over the lazy dog near the river bank.",
+  "She carefully placed the ancient manuscript back onto the wooden shelf.",
+  "Every morning he practiced typing for thirty minutes before starting work.",
+  "The development team pushed the latest changes to production at midnight.",
+  "Learning to type faster requires consistent daily practice and patience.",
+  "He opened the terminal and ran the deployment script without hesitation.",
+  "The neural network learned to recognize patterns in large datasets quickly.",
+  "Please review the attached document and share your feedback by Friday.",
+  "She wrote the entire report in one sitting, fueled by coffee and focus.",
+  "The API returns a structured JSON response with authentication headers.",
+  "Understanding keyboard dynamics helps build better typing intelligence systems.",
+  "Version control saves the team from losing days of important work.",
+  "The conference call was rescheduled to allow more preparation time.",
+  "He debugged the issue in under an hour using systematic logging methods.",
+  "Cloud infrastructure scales automatically to match real-time user demand.",
+  "The typing test results revealed consistent rhythm and good accuracy overall.",
+  "She submitted the final draft before the deadline by a narrow margin.",
+  "Machine learning models improve over time with more quality training data.",
+  "Good communication is the foundation of every successful software project.",
+];
+let sentenceIdx = 0;
+let currentTarget = SENTENCES[0];
+
+/* ─── STATE ─────────────────────────────────────────────── */
+let timestamps=[], keysTyped=0, errors=0, startTime=null;
+let analysisData=null, selectedStyle='learned';
+let playTimer=null, speechTypTimer=null, genTimer=null, pasteTimer=null;
+let recognition=null, isListening=false, spokenText='';
+let currentGenSentence='', currentGenTopic='';
+
+/* ─── INIT ──────────────────────────────────────────────── */
+renderChars('');
+updateSentenceCounter();
+loadProfile();
+updDelay();
+
+/* ─── SENTENCE SWITCHER ─────────────────────────────────── */
+function newSentence() {
+  getACtx();
+  playNewSentence();
+  sentenceIdx = (sentenceIdx + 1) % SENTENCES.length;
+  currentTarget = SENTENCES[sentenceIdx];
+  resetCapture(true); // silent reset
+  updateSentenceCounter();
+  setSbar('capStatus','info',`↻ New sentence loaded — sentence ${sentenceIdx+1} of ${SENTENCES.length}.`);
+}
+function updateSentenceCounter() {
+  document.getElementById('sentenceCounter').textContent = `Sentence ${sentenceIdx+1} of ${SENTENCES.length}`;
+}
+
+/* ─── TABS ──────────────────────────────────────────────── */
+const TAB_NAMES = ['capture','analysis','playback','speech','generate','paste','profile'];
+function goTab(name) {
+  playTabClick();
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  document.querySelectorAll('.tab')[TAB_NAMES.indexOf(name)].classList.add('active');
+}
+
+/* ─── CHAR DISPLAY ──────────────────────────────────────── */
+function renderChars(typed) {
+  let h='';
+  for(let i=0;i<currentTarget.length;i++){
+    let c='ch-pending';
+    if(i<typed.length) c=typed[i]===currentTarget[i]?'ch-correct':'ch-wrong';
+    if(i===typed.length) c+=' ch-cursor';
+    h+=`<span class="${c}">${currentTarget[i]===' '?'&nbsp;':currentTarget[i]}</span>`;
+  }
+  document.getElementById('charDisplay').innerHTML=h;
+}
+
+/* ─── CAPTURE ───────────────────────────────────────────── */
+const inputBox = document.getElementById('inputBox');
+inputBox.addEventListener('keydown', e=>{
+  if(!startTime) startTime=Date.now();
+  timestamps.push(Date.now());
+  keysTyped++;
+  const typed=inputBox.value;
+  const next=typed.length<currentTarget.length?currentTarget[typed.length]:null;
+  const isErr=next&&e.key!=='Backspace'&&e.key!==next&&e.key.length===1;
+  playKeyClick(isErr);
+});
+inputBox.addEventListener('input', ()=>{
+  const typed=inputBox.value;
+  renderChars(typed);
+  const pct=Math.min(100,Math.round(typed.length/currentTarget.length*100));
+  document.getElementById('pFill').style.width=pct+'%';
+  document.getElementById('pPct').textContent=pct+'%';
+  let correct=0,errs=0;
+  for(let i=0;i<Math.min(typed.length,currentTarget.length);i++){
+    typed[i]===currentTarget[i]?correct++:errs++;
+  }
+  errors=errs;
+  const acc=typed.length?Math.round(correct/typed.length*100):0;
+  document.getElementById('lAcc').textContent=typed.length?acc+'%':'—';
+  document.getElementById('lKeys').textContent=keysTyped;
+  document.getElementById('lErr').textContent=errors;
+  if(startTime&&timestamps.length>1){
+    const el=(Date.now()-startTime)/60000;
+    const wpm=Math.round(typed.trim().split(/\s+/).length/el);
+    document.getElementById('lWpm').textContent=isFinite(wpm)?wpm:0;
+  }
+  renderRhythm();
+  const cs=document.getElementById('capStatus');
+  if(pct===100){cs.className='sbar ok';cs.textContent='✓ Complete! Click Analyze & Learn Style.'}
+  else{cs.className='sbar';cs.textContent=`⬡ Capturing… ${typed.length}/${currentTarget.length} chars`}
+});
+
+/* ─── RHYTHM ────────────────────────────────────────────── */
+function renderRhythm(){
+  if(timestamps.length<2) return;
+  const d=[]; for(let i=1;i<timestamps.length;i++) d.push(timestamps[i]-timestamps[i-1]);
+  const r=d.slice(-60), mx=Math.max(...r,1);
+  document.getElementById('rhythmBars').innerHTML=r.map(v=>{
+    const h=Math.max(4,Math.round(v/mx*52));
+    const c=v<100?'rbar fast':v>300?'rbar slow':'rbar';
+    return`<div class="${c}" style="height:${h}px" title="${v}ms"></div>`;
+  }).join('');
+}
+
+/* ─── ANALYSIS ──────────────────────────────────────────── */
+function runAnalysis(){
+  playBtnClick();
+  const typed=inputBox.value;
+  if(!typed.trim()||timestamps.length<3){
+    setSbar('capStatus','warn','⚠ Type more before analyzing.');return;
+  }
+  const d=[]; for(let i=1;i<timestamps.length;i++) d.push(timestamps[i]-timestamps[i-1]);
+  const avg=Math.round(d.reduce((a,b)=>a+b,0)/d.length);
+  const maxp=Math.max(...d);
+  const tsec=Math.round((timestamps.at(-1)-timestamps[0])/1000);
+  let correct=0;
+  for(let i=0;i<Math.min(typed.length,currentTarget.length);i++) if(typed[i]===currentTarget[i]) correct++;
+  const acc=Math.round(correct/currentTarget.length*100);
+  const el=(timestamps.at(-1)-timestamps[0])/60000;
+  const wpm=Math.round(typed.trim().split(/\s+/).length/el);
+  const styleClass=wpm>70&&acc>92?'EXPERT':wpm>55?'PROFICIENT':wpm<25||acc<75?'BEGINNER':'AVERAGE';
+  analysisData={avg,maxp,tsec,acc,wpm,styleClass,delays:d,typed};
+
+  document.getElementById('m-wpm').textContent=wpm;
+  document.getElementById('m-acc').textContent=acc+'%';
+  document.getElementById('m-delay').innerHTML=avg+'<span> ms</span>';
+  document.getElementById('m-maxp').innerHTML=maxp+'<span> ms</span>';
+  document.getElementById('m-time').innerHTML=tsec+'<span> s</span>';
+  document.getElementById('m-class').textContent=styleClass;
+  renderHeatmap(d);
+  renderTips(wpm,acc,avg,maxp);
+  saveProfile(wpm,acc,avg);
+
+  document.getElementById('delaySlider').value=avg;
+  updDelay();
+
+  document.getElementById('learnedBanner').classList.add('show');
+  document.getElementById('learnedDesc').textContent=`${wpm} WPM · ${acc}% accuracy · ${styleClass} · ${avg}ms signature delay`;
+  document.getElementById('profileChip').classList.add('show');
+  document.getElementById('speechTypeBtn').style.opacity='1';
+  document.getElementById('speechStopBtn').style.opacity='1';
+  document.getElementById('genTypeBtn').style.opacity='1';
+  document.getElementById('genStopBtn').style.opacity='1';
+  document.getElementById('pasteTypeBtn').style.opacity='1';
+  document.getElementById('pasteStyleChip').innerHTML=`<span class="auto-chip">🧠 ${styleClass} · ${avg}ms</span>`;
+  document.getElementById('hStatus').textContent='STYLE ACTIVE';
+
+  playAnalysisDone();
+  setSbar('capStatus','ok',`✓ Style learned — ${wpm} WPM · ${acc}% · ${styleClass}`);
+  setTimeout(()=>goTab('analysis'),600);
+}
+
+/* ─── HEATMAP ───────────────────────────────────────────── */
+function renderHeatmap(delays){
+  const mx=Math.max(...delays,1);
+  const wrap=document.getElementById('heatmapWrap');
+  wrap.innerHTML='';
+  currentTarget.split('').forEach((ch,i)=>{
+    const v=(delays[i]||0)/mx;
+    const div=document.createElement('div');
+    div.className='hmc';
+    div.style.background=`rgba(${Math.round(v*255)},${Math.round((1-v)*200)},100,${.35+v*.55})`;
+    div.style.color=v>.55?'#fff':'#000';
+    div.textContent=ch===' '?'·':ch;
+    div.title=`"${ch}" — ${delays[i]||0}ms`;
+    wrap.appendChild(div);
+  });
+}
+
+/* ─── TIPS ──────────────────────────────────────────────── */
+function renderTips(wpm,acc,avg,maxp){
+  const tips=[];
+  if(acc>=95) tips.push({t:'good',i:'✓',m:`Outstanding accuracy at ${acc}%. Your muscle memory is excellent.`});
+  else if(acc>=85) tips.push({t:'info',i:'ℹ',m:`Good accuracy at ${acc}%. Focus on the letters you keep missing.`});
+  else tips.push({t:'warn',i:'⚠',m:`Accuracy is ${acc}% — slow down and prioritize correctness over speed.`});
+  if(wpm>=70) tips.push({t:'good',i:'⚡',m:`${wpm} WPM — you're in the top 15% of typists globally.`});
+  else if(wpm>=40) tips.push({t:'info',i:'ℹ',m:`${wpm} WPM is solid. Daily 10-min drills will push you past 60.`});
+  else tips.push({t:'warn',i:'⚠',m:`${wpm} WPM — focus on home-row placement and consistent rhythm.`});
+  if(avg>300) tips.push({t:'warn',i:'⏱',m:`${avg}ms average delay. Smoother finger transitions will improve flow.`});
+  if(maxp>1500) tips.push({t:'warn',i:'⏸',m:`${maxp}ms max pause — memorize common word patterns to reduce stops.`});
+  if(avg<120) tips.push({t:'pu',i:'🔥',m:`Only ${avg}ms average — you have natural fast-twitch typing rhythm.`});
+  document.getElementById('tipsBox').innerHTML=tips.map(t=>
+    `<div class="tip ${t.t}"><div class="tip-i">${t.i}</div><div>${t.m}</div></div>`
+  ).join('');
+}
+
+/* ─── DELAY ─────────────────────────────────────────────── */
+function getDelay(i=0,style=null){
+  const s=style||selectedStyle;
+  const base=analysisData?.avg||parseInt(document.getElementById('delaySlider').value);
+  switch(s){
+    case 'slow':    return 265+Math.random()*190;
+    case 'fast':    return 55+Math.random()*55;
+    case 'formal':  return 140+Math.random()*80;
+    case 'erratic': return 40+Math.random()*530;
+    case 'learned': default:
+      if(analysisData?.delays[i]) return analysisData.delays[i]*(0.82+Math.random()*0.36);
+      return base+(Math.random()*50-25);
+  }
+}
+function updDelay(){
+  document.getElementById('delayVal').textContent=document.getElementById('delaySlider').value+'ms';
+}
+function selStyle(el){
+  playBtnClick();
+  document.querySelectorAll('.scard').forEach(c=>c.classList.remove('sel'));
+  el.classList.add('sel');
+  selectedStyle=el.dataset.style;
+  document.getElementById('pb-style').textContent=el.querySelector('.sn').textContent;
+}
+
+/* ─── TAB 3 PLAYBACK ────────────────────────────────────── */
+function startPB(){
+  playBtnClick();
+  if(playTimer){clearTimeout(playTimer);playTimer=null;}
+  const txt=document.getElementById('pbText'), cur=document.getElementById('pbCursor');
+  txt.textContent=''; cur.style.display='inline-block';
+  setSbar('pbStatus','info','⟳ AI typing…');
+  document.getElementById('pb-style').textContent=document.querySelector('.scard.sel .sn').textContent;
+  let i=0;
+  function next(){
+    if(i>=currentTarget.length){
+      cur.style.display='none'; playSuccess();
+      setSbar('pbStatus','ok','✓ Playback complete.'); return;
+    }
+    txt.textContent+=currentTarget[i]; playKeyClick();
+    document.getElementById('pb-prog').textContent=Math.round((i+1)/currentTarget.length*100)+'%';
+    document.getElementById('pb-chars').textContent=i+1;
+    document.getElementById('pb-delay').textContent=Math.round(getDelay(i));
+    i++; playTimer=setTimeout(next,getDelay(i));
+  }
+  next();
+}
+function stopPB(){
+  playStop();
+  if(playTimer){clearTimeout(playTimer);playTimer=null;}
+  document.getElementById('pbCursor').style.display='none';
+  setSbar('pbStatus','warn','■ Stopped.');
+}
+
+/* ─── TAB 4 SPEECH ──────────────────────────────────────── */
+function toggleSpeech(){
+  getACtx();
+  if(isListening){stopSpeech();return;}
+  if(!('webkitSpeechRecognition' in window||'SpeechRecognition' in window)){
+    setSbar('speechStatus','warn','⚠ Speech recognition not supported. Use Chrome browser.');return;
+  }
+  playMicOn();
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  recognition=new SR();
+  recognition.continuous=true; recognition.interimResults=true; recognition.lang='en-US';
+  recognition.onstart=()=>{
+    isListening=true;
+    document.getElementById('speechRing').classList.add('listening');
+    document.getElementById('waveBars').querySelectorAll('.wbar').forEach(b=>b.classList.add('active'));
+    document.getElementById('speechHint').textContent='LISTENING…';
+    setSbar('speechStatus','pu','🎙 Listening — speak clearly.');
+  };
+  recognition.onresult=e=>{
+    let interim='',final='';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      if(e.results[i].isFinal) final+=e.results[i][0].transcript;
+      else interim+=e.results[i][0].transcript;
+    }
+    if(final) spokenText+=final+' ';
+    const show=(spokenText+(interim?'<span style="color:var(--muted)">'+interim+'</span>':'')).trim();
+    document.getElementById('transcriptBox').innerHTML=show||'<span class="placeholder-t">Listening…</span>';
+    if(spokenText.trim()) document.getElementById('speechTypeBtn').style.opacity='1';
+  };
+  recognition.onerror=e=>{setSbar('speechStatus','warn','⚠ Error: '+e.error);stopSpeech();};
+  recognition.onend=()=>{if(isListening) stopSpeech();};
+  recognition.start();
+}
+function stopSpeech(){
+  playMicOff(); isListening=false;
+  if(recognition){try{recognition.stop();}catch(e){}}
+  document.getElementById('speechRing').classList.remove('listening');
+  document.getElementById('waveBars').querySelectorAll('.wbar').forEach(b=>b.classList.remove('active'));
+  document.getElementById('speechHint').textContent='TAP MIC TO SPEAK';
+  if(spokenText) setSbar('speechStatus','ok',`✓ Captured "${spokenText.trim().substring(0,55)}…"`);
+}
+function typeSpeech(){
+  playBtnClick();
+  const txt=spokenText.trim();
+  if(!txt){setSbar('speechStatus','warn','⚠ No speech captured yet.');return;}
+  if(speechTypTimer){clearTimeout(speechTypTimer);speechTypTimer=null;}
+  const out=document.getElementById('speechPbText'), cur=document.getElementById('speechCursor');
+  out.textContent=''; cur.style.display='inline-block';
+  setSbar('speechPbStatus','info','⟳ AI typing your speech in your style…');
+  let i=0;
+  function next(){
+    if(i>=txt.length){cur.style.display='none';playSuccess();setSbar('speechPbStatus','ok','✓ Done — AI typed your speech.');return;}
+    out.textContent+=txt[i]; playKeyClick(); i++;
+    speechTypTimer=setTimeout(next,getDelay(i,'learned'));
+  }
+  next();
+}
+function stopSpeechType(){
+  playStop();
+  if(speechTypTimer){clearTimeout(speechTypTimer);speechTypTimer=null;}
+  document.getElementById('speechCursor').style.display='none';
+  setSbar('speechPbStatus','warn','■ Stopped.');
+}
+function clearSpeech(){
+  playBtnClick(); spokenText='';
+  stopSpeechType();
+  document.getElementById('transcriptBox').innerHTML='<span class="placeholder-t">Your spoken words will appear here…</span>';
+  document.getElementById('speechPbText').textContent='';
+  document.getElementById('speechTypeBtn').style.opacity='.4';
+  setSbar('speechStatus','','⬡ Cleared. Tap mic to speak.');
+  setSbar('speechPbStatus','','⬡ Speak, then press AI Type My Words.');
+}
+
+/* ─── TAB 5 GENERATE ────────────────────────────────────── */
+const GEN_POOL = {
+  tech:["The neural network processes millions of parameters to identify complex patterns.","Quantum computing will fundamentally transform cryptography and data encryption.","Machine learning models require extensive labeled datasets for high prediction accuracy.","The API endpoint returns a JSON response with secure authentication tokens.","Cloud infrastructure enables horizontal scaling for unpredictable traffic spikes.","Version control systems allow teams to collaborate on code without conflicts.","Edge computing reduces latency by processing data closer to where it is generated.","Containerization with Docker ensures consistent environments across all deployments."],
+  story:["She opened the old wooden door and found a room filled with glowing amber light.","The detective stood in the rain, piecing together clues no one else could see.","He had been walking for three days before the village appeared on the horizon.","The letter arrived without a stamp, a postmark, or any return address at all.","Every night she lit the lantern in the window, hoping he would find his way home.","The child whispered a name into the wind and the mountains echoed it back."],
+  science:["Photosynthesis converts solar energy into chemical energy stored in glucose molecules.","The entropy of an isolated system always increases over time by the second law.","Black holes distort spacetime so severely that not even light can escape them.","The human genome contains approximately three billion base pairs of DNA sequences.","Neurons communicate through electrochemical signals transmitted across synaptic gaps.","Climate models use differential equations to simulate atmospheric interactions."],
+  business:["The quarterly earnings report exceeded analyst expectations by fourteen percent.","Strategic partnerships can accelerate market penetration and reduce acquisition costs.","Customer retention is five times more cost-effective than acquiring new customers.","The board approved the merger after a thorough due diligence review of financials.","Agile methodology enables teams to iterate quickly and respond to requirements.","Market segmentation helps companies tailor their value proposition to customers."],
+  philosophy:["The examined life requires courage to confront uncomfortable truths about ourselves.","Free will and determinism have occupied philosophers for centuries without resolution.","Consciousness remains one of the deepest mysteries in philosophy and neuroscience.","The pursuit of meaning gives human beings the strength to endure any circumstance.","Ethics asks not only what is right but who we become through the choices we make.","Truth is not a destination but a practice — an ongoing commitment to inquiry."],
+  casual:["Can you believe how fast this week went by? Feels like Monday was yesterday.","I finally tried that new coffee place downtown and it was worth the hype.","We should plan a trip sometime — nothing fancy, just somewhere new and different.","Just finished the best book I've picked up in years, absolutely could not put it down.","That movie was so much better than I expected, way better than the reviews said.","I've been trying to wake up earlier but it's a real struggle every single morning."],
+};
+
+function genSentence(topic){
+  playBtnClick();
+  if(genTimer){clearTimeout(genTimer);genTimer=null;}
+  let t=topic;
+  if(topic==='random') t=Object.keys(GEN_POOL)[Math.floor(Math.random()*Object.keys(GEN_POOL).length)];
+  const pool=GEN_POOL[t]||GEN_POOL.tech;
+  const s=pool[Math.floor(Math.random()*pool.length)];
+  currentGenSentence=s; currentGenTopic=t;
+  document.getElementById('genText').textContent=s;
+  document.getElementById('genText').style.color='#fff';
+  document.getElementById('genTypeBtn').style.opacity='1';
+  document.getElementById('genStopBtn').style.opacity='1';
+  document.getElementById('gen-topic').textContent=t.toUpperCase();
+  setSbar('genStatus','info',`✓ Generated — ${s.length} chars · Topic: ${t} · Auto-typing…`);
+  genTimer=setTimeout(()=>typeGenSentence(),900);
+}
+function typeGenSentence(){
+  playBtnClick();
+  if(!currentGenSentence){setSbar('genStatus','warn','⚠ Generate a sentence first.');return;}
+  if(genTimer){clearTimeout(genTimer);genTimer=null;}
+  const txt=currentGenSentence;
+  const out=document.getElementById('genPbText'), cur=document.getElementById('genCursor');
+  out.textContent=''; cur.style.display='inline-block';
+  document.getElementById('gen-chars').textContent='0';
+  document.getElementById('gen-prog').textContent='0%';
+  setSbar('genStatus','info','⟳ AI typing in your style…');
+  let i=0, start=Date.now();
+  function next(){
+    if(i>=txt.length){
+      cur.style.display='none'; playSuccess();
+      const el=(Date.now()-start)/60000;
+      const wpm=Math.round(txt.split(' ').length/el);
+      document.getElementById('gen-wpm').textContent=wpm;
+      setSbar('genStatus','ok',`✓ Done — ${wpm} WPM · ${currentGenTopic}`);
+      return;
+    }
+    out.textContent+=txt[i]; playKeyClick();
+    document.getElementById('gen-prog').textContent=Math.round((i+1)/txt.length*100)+'%';
+    document.getElementById('gen-chars').textContent=i+1;
+    i++; genTimer=setTimeout(next,getDelay(i,'learned'));
+  }
+  next();
+}
+function stopGen(){
+  playStop();
+  if(genTimer){clearTimeout(genTimer);genTimer=null;}
+  document.getElementById('genCursor').style.display='none';
+  setSbar('genStatus','warn','■ Stopped.');
+}
+
+/* ─── TAB 6 PASTE ───────────────────────────────────────── */
+function pasteInput(){
+  const v=document.getElementById('pasteArea').value;
+  document.getElementById('pasteCharCount').textContent=v.length+' characters';
+  document.getElementById('pasteTypeBtn').style.opacity=v.trim()?'1':'.4';
+  document.getElementById('paste-total').textContent=v.length||'—';
+}
+function typePaste(){
+  playBtnClick();
+  const txt=document.getElementById('pasteArea').value.trim();
+  if(!txt){setSbar('pasteStatus','warn','⚠ Paste text first.');return;}
+  if(pasteTimer){clearTimeout(pasteTimer);pasteTimer=null;}
+  const out=document.getElementById('pastePbText'), cur=document.getElementById('pasteCursor');
+  out.textContent=''; cur.style.display='inline-block';
+  document.getElementById('pasteProg').style.width='0%';
+  setSbar('pasteStatus','info','⟳ AI typing your text in your style…');
+  let i=0;
+  function next(){
+    if(i>=txt.length){cur.style.display='none';playSuccess();setSbar('pasteStatus','ok','✓ All text typed in your style.');return;}
+    out.textContent+=txt[i]; playKeyClick();
+    const pct=Math.round((i+1)/txt.length*100);
+    document.getElementById('paste-prog').textContent=pct+'%';
+    document.getElementById('paste-chars').textContent=i+1;
+    const d=Math.round(getDelay(i,'learned'));
+    document.getElementById('paste-delay').textContent=d;
+    document.getElementById('pasteProg').style.width=pct+'%';
+    i++; pasteTimer=setTimeout(next,getDelay(i,'learned'));
+  }
+  next();
+}
+function stopPaste(){
+  playStop();
+  if(pasteTimer){clearTimeout(pasteTimer);pasteTimer=null;}
+  document.getElementById('pasteCursor').style.display='none';
+  setSbar('pasteStatus','warn','■ Stopped.');
+}
+function clearPaste(){
+  playBtnClick(); stopPaste();
+  document.getElementById('pasteArea').value='';
+  document.getElementById('pastePbText').textContent='';
+  document.getElementById('pasteCharCount').textContent='0 characters';
+  document.getElementById('pasteProg').style.width='0%';
+  document.getElementById('paste-prog').textContent='0%';
+  document.getElementById('paste-chars').textContent='0';
+  document.getElementById('pasteTypeBtn').style.opacity='.4';
+  setSbar('pasteStatus','','⬡ Cleared.');
+}
+
+/* ─── RESET CAPTURE ─────────────────────────────────────── */
+function resetCapture(silent=false){
+  if(!silent) playBtnClick();
+  inputBox.value='';
+  timestamps=[]; keysTyped=0; errors=0; startTime=null;
+  renderChars('');
+  document.getElementById('pFill').style.width='0%';
+  document.getElementById('pPct').textContent='0%';
+  ['lWpm','lKeys','lErr'].forEach(id=>document.getElementById(id).textContent='0');
+  document.getElementById('lAcc').textContent='—';
+  document.getElementById('rhythmBars').innerHTML='<span style="color:var(--muted);font-size:11px">No data yet — start typing.</span>';
+  if(!silent) setSbar('capStatus','','⬡ Reset. Type the sentence to begin.');
+}
+
+/* ─── PROFILE ───────────────────────────────────────────── */
+function saveProfile(wpm,acc,avg){
+  let p=JSON.parse(localStorage.getItem('htie_v3')||'{}');
+  if(!p.id) p.id='USR-'+Math.random().toString(36).substr(2,8).toUpperCase();
+  p.sessions=(p.sessions||0)+1;
+  p.totalWpm=((p.totalWpm||0)*(p.sessions-1)+wpm)/p.sessions;
+  p.bestWpm=Math.max(p.bestWpm||0,wpm);
+  p.totalAcc=((p.totalAcc||0)*(p.sessions-1)+acc)/p.sessions;
+  p.sigDelay=avg; p.lastUpdate=new Date().toISOString();
+  localStorage.setItem('htie_v3',JSON.stringify(p));
+  renderProfile(p);
+}
+function loadProfile(){
+  const p=JSON.parse(localStorage.getItem('htie_v3')||'{}');
+  if(p.id) renderProfile(p);
+}
+function renderProfile(p){
+  document.getElementById('p-id').textContent=p.id||'—';
+  document.getElementById('p-sess').textContent=p.sessions||'—';
+  document.getElementById('p-wpm').textContent=Math.round(p.totalWpm||0);
+  document.getElementById('p-best').textContent=p.bestWpm||'—';
+  document.getElementById('p-acc').textContent=Math.round(p.totalAcc||0)+'%';
+  document.getElementById('p-sig').innerHTML=(p.sigDelay||'—')+'<span> ms</span>';
+  document.getElementById('profileJSON').textContent=JSON.stringify(p,null,2);
+  setSbar('profileStatus','ok',`✓ ${p.sessions} session(s) recorded.`);
+}
+function exportProfile(){
+  playBtnClick();
+  const blob=new Blob([localStorage.getItem('htie_v3')||'{}'],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob); a.download='htie_profile.json'; a.click();
+}
+function clearProfile(){
+  playBtnClick(); localStorage.removeItem('htie_v3');
+  ['p-id','p-sess','p-wpm','p-best','p-acc'].forEach(id=>document.getElementById(id).textContent='—');
+  document.getElementById('p-sig').innerHTML='—<span> ms</span>';
+  document.getElementById('profileJSON').textContent='No data yet.';
+  setSbar('profileStatus','warn','⊗ Profile cleared.');
+}
+
+/* ─── UTIL ──────────────────────────────────────────────── */
+function setSbar(id,type,msg){
+  const el=document.getElementById(id);
+  el.className='sbar'+(type?' '+type:'');
+  el.textContent=msg;
+}
+</script>
+</body>
+</html>
