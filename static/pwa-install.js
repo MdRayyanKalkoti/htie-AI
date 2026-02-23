@@ -59,8 +59,39 @@
 
 'use strict';
 
-/* ── Global deferred prompt (Chrome/Edge/Samsung native) ─── */
+/* ═══════════════════════════════════════════════════════════
+   ★ CAPTURE beforeinstallprompt IMMEDIATELY
+   This event fires early — before DOMContentLoaded.
+   Must be registered at script parse time, not inside any
+   function. Using 'defer' on this script is fine because
+   browsers hold the event until listeners are ready, BUT
+   we also store it on window as a safety net.
+═══════════════════════════════════════════════════════════ */
 window.HTIE_deferredPrompt = null;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  // Prevent Chrome's mini-infobar from appearing automatically
+  e.preventDefault();
+  // Store for when user clicks Install button
+  window.HTIE_deferredPrompt = e;
+  // Show the install bar immediately if it's hidden
+  const bar = document.getElementById('pwaBar');
+  if (bar) {
+    bar.classList.remove('hidden');
+  }
+  console.log('[HTIE PWA] beforeinstallprompt captured ✓');
+});
+
+window.addEventListener('appinstalled', () => {
+  window.HTIE_deferredPrompt = null;
+  pwa_hideBar();
+  console.log('[HTIE PWA] App installed ✓');
+  try {
+    if (typeof setSbar === 'function') {
+      setSbar('capStatus', 'ok', '✓ HTIE installed! Open it anytime from your home screen or desktop.');
+    }
+  } catch(e) {}
+});
 
 /* ═══════════════════════════════════════════════════════════
    1. BROWSER & DEVICE DETECTION
@@ -521,24 +552,73 @@ async function handleInstall() {
 
   const prompt = window.HTIE_deferredPrompt;
 
+  // ── Case 1: Native OS install dialog available ──────────
+  // Happens on Chrome/Edge/Samsung when served over HTTPS
   if (prompt) {
-    // ✅ Native OS install dialog — Chrome/Edge/Samsung on Android + Desktop HTTPS
     try {
       prompt.prompt();
       const { outcome } = await prompt.userChoice;
       if (outcome === 'accepted') {
         pwa_hideBar();
+        window.HTIE_deferredPrompt = null;
+        return;
       }
     } catch (err) {
-      // If native prompt fails, fall back to manual
-      pwa_showInstallModal();
+      // Native prompt failed — fall through to manual modal
     }
     window.HTIE_deferredPrompt = null;
+  }
+
+  // ── Case 2: Localhost HTTP detected ────────────────────
+  // beforeinstallprompt NEVER fires on HTTP — browser blocks it.
+  // Show a friendly explanation instead of confusing steps.
+  const isLocalhost = (
+    location.hostname === 'localhost' ||
+    location.hostname === '127.0.0.1' ||
+    location.hostname === '0.0.0.0' ||
+    location.hostname.endsWith('.local')
+  );
+
+  if (isLocalhost) {
+    pwa_showLocalhostNotice();
     return;
   }
 
-  // No native prompt available — show manual step-by-step guide
+  // ── Case 3: HTTPS but no native prompt ─────────────────
+  // Covers: iOS Safari, all China browsers, Firefox, etc.
+  // Show manual step-by-step install guide for this browser.
   pwa_showInstallModal();
+}
+
+/* ── Localhost / HTTP notice ─────────────────────────────── */
+function pwa_showLocalhostNotice() {
+  const browserEl = document.getElementById('pwaModalBrowser');
+  const stepsEl   = document.getElementById('pwaModalSteps');
+  const modal     = document.getElementById('pwaModal');
+  if (!browserEl || !stepsEl || !modal) return;
+
+  browserEl.textContent = 'INSTALL REQUIRES HTTPS';
+  stepsEl.innerHTML = `
+    <div class="pwa-step">
+      <div class="pwa-step-num">1</div>
+      <div class="pwa-step-emoji">🔒</div>
+      <div class="pwa-step-text">You are on <strong>localhost HTTP</strong> — browsers block PWA install on plain HTTP by design. This is a Chrome/browser security rule, not a bug.</div>
+    </div>
+    <div class="pwa-step">
+      <div class="pwa-step-num">2</div>
+      <div class="pwa-step-emoji">🚀</div>
+      <div class="pwa-step-text">Deploy to <strong>Render, Railway, Vercel, or any HTTPS host</strong> — the Install button will show the native OS dialog automatically on the live URL.</div>
+    </div>
+    <div class="pwa-step">
+      <div class="pwa-step-num">3</div>
+      <div class="pwa-step-emoji">📋</div>
+      <div class="pwa-step-text">Your <strong>render.yaml</strong> is ready — push to GitHub, connect to Render, and deploy. Takes about 2 minutes.</div>
+    </div>
+    <div class="pwa-wechat-tip">
+      💡 On the live HTTPS URL: Chrome/Edge shows a native <strong>"Install App"</strong> popup. iOS Safari shows <strong>"Add to Home Screen"</strong> in Share menu. All China browsers show step-by-step guides.
+    </div>
+  `;
+  modal.classList.add('show');
 }
 
 
@@ -594,8 +674,17 @@ function setupPWA() {
   }
 
   // ── Update subtitle text for this browser ────────────────
+  const isLocalhost = (
+    location.hostname === 'localhost' ||
+    location.hostname === '127.0.0.1' ||
+    location.hostname === '0.0.0.0' ||
+    location.hostname.endsWith('.local')
+  );
+
   if (sub) {
-    if (br.isWeChat || br.isWeibo) {
+    if (isLocalhost) {
+      sub.textContent = '⚠ Localhost — Deploy to HTTPS for native install dialog';
+    } else if (br.isWeChat || br.isWeibo) {
       sub.textContent = 'Tap to install — open in browser first (在浏览器中打开)';
     } else if (br.isChinaBrowser) {
       sub.textContent = 'Tap for install guide (添加到桌面 / 添加到主屏幕)';
@@ -609,24 +698,15 @@ function setupPWA() {
   }
 
   // ── Wire native beforeinstallprompt (Chrome/Edge/Samsung + HTTPS) ──
-  window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    window.HTIE_deferredPrompt = e;
-    // Ensure bar is visible when native prompt is ready
-    pwa_showBar();
-  });
-
-  // ── Hide bar after successful OS install ─────────────────
-  window.addEventListener('appinstalled', () => {
-    pwa_hideBar();
-    window.HTIE_deferredPrompt = null;
-    // Notify HTIE status bar if available
-    try {
-      if (typeof setSbar === 'function') {
-        setSbar('capStatus', 'ok', '✓ HTIE installed! Open it anytime from your home screen or desktop.');
-      }
-    } catch(e) {}
-  });
+  // NOTE: The primary listener is at the TOP of this file (script parse time).
+  // This secondary listener is a safety net in case setupPWA runs after the event.
+  if (!window.HTIE_deferredPrompt) {
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      window.HTIE_deferredPrompt = e;
+      pwa_showBar();
+    });
+  }
 
   // Bar is already visible — nothing more to do for other browsers
 }

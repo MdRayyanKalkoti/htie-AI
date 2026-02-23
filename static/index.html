@@ -516,11 +516,14 @@ header {
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function() {
-      navigator.serviceWorker.register('/sw.js', { scope: '/' });
+      navigator.serviceWorker.register('/sw.js', { scope: '/' })
+        .then(reg => console.log('[HTIE SW] Registered, scope:', reg.scope))
+        .catch(err => console.warn('[HTIE SW] Registration failed:', err));
     });
   }
 </script>
-<script src="/static/pwa-install.js" defer></script>
+<!-- PWA install engine — loaded early (no defer) to catch beforeinstallprompt -->
+<script src="/static/pwa-install.js"></script>
 </head>
 <body>
 
