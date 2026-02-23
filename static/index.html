@@ -33,13 +33,13 @@ body::after{content:'';position:fixed;top:-100%;left:0;right:0;height:1px;backgr
 
 /* ── PWA INSTALL BAR ─────────────────────────────────────── */
 #pwaBar{
-  display:none;align-items:center;gap:12px;flex-wrap:wrap;
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;
   background:linear-gradient(135deg,rgba(245,158,11,.12),rgba(0,255,180,.08));
   border:1px solid rgba(245,158,11,.35);border-radius:10px;
   padding:12px 18px;margin-bottom:16px;
   animation:fadein .4s ease;
 }
-#pwaBar.show{display:flex}
+#pwaBar.hidden{display:none}
 .pwa-icon{font-size:22px;flex-shrink:0}
 .pwa-text{flex:1;min-width:160px}
 .pwa-title{font-family:var(--disp);font-size:13px;font-weight:700;color:var(--gold)}
@@ -1058,7 +1058,7 @@ async function handleInstall() {
 /* ── dismissPWA() ────────────────────────────────────────── */
 function dismissPWA() {
   try { playBtnClick(); } catch(e) {}
-  document.getElementById('pwaBar').classList.remove('show');
+  document.getElementById('pwaBar').classList.add('hidden');
   sessionStorage.setItem('htie_pwa_dismissed', '1');
 }
 
@@ -1068,34 +1068,41 @@ function setupPWA() {
   const sub = document.getElementById('pwaBarSub');
   const br  = detectBrowser();
 
-  // Already dismissed this session
-  if (sessionStorage.getItem('htie_pwa_dismissed')) return;
-
-  // Already installed as PWA — don't show bar
-  if (window.matchMedia('(display-mode: standalone)').matches ||
-      window.navigator.standalone === true) return;
-
-  if (br.supportsPrompt) {
-    // Chrome/Edge/Samsung — wait for beforeinstallprompt
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredPrompt = e;
-      bar.classList.add('show');
-    });
-    window.addEventListener('appinstalled', () => {
-      bar.classList.remove('show');
-      deferredPrompt = null;
-      try { setSbar('capStatus', 'ok', '✓ HTIE installed! Open it anytime from your home screen or desktop.'); } catch(e) {}
-    });
-
-  } else if (br.isMobile) {
-    // All other mobile: iOS, WeChat, UC, Baidu, QQ, Huawei, MIUI, OPPO, Vivo, Firefox Mobile
-    // Always show bar with manual install instructions
-    const cfg = getInstallSteps(br);
-    if (sub) sub.textContent = `Tap to install on ${cfg.browser}`;
-    bar.classList.add('show');
+  // Already dismissed this session — respect user choice
+  if (sessionStorage.getItem('htie_pwa_dismissed')) {
+    bar.classList.add('hidden'); return;
   }
-  // Desktop non-Chrome: don't show bar
+
+  // Already running as installed PWA — hide bar
+  if (window.matchMedia('(display-mode: standalone)').matches ||
+      window.navigator.standalone === true) {
+    bar.classList.add('hidden'); return;
+  }
+
+  // ★ ALWAYS show the install bar — every browser, every device
+  bar.classList.add('show');
+
+  // Update subtitle based on platform
+  if (sub) {
+    if (br.isMobile) {
+      const cfg = getInstallSteps(br);
+      sub.textContent = `Tap to install on ${cfg.browser}`;
+    } else {
+      sub.textContent = 'Install as desktop app — works offline, no browser UI';
+    }
+  }
+
+  // Wire up native Chrome/Edge/Samsung install prompt if available
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+  });
+
+  window.addEventListener('appinstalled', () => {
+    document.getElementById('pwaBar').classList.add('hidden');
+    deferredPrompt = null;
+    try { setSbar('capStatus', 'ok', '✓ HTIE installed! Open it anytime from your home screen or desktop.'); } catch(e) {}
+  });
 }
 
 /* END PWA UNIVERSAL MODULE ══════════════════════════════ */
