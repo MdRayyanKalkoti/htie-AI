@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
 <meta name="theme-color" content="#060b12">
 <meta name="description" content="Human Typing Intelligence Engine — Learn and replicate your unique typing style with AI.">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -25,7 +25,7 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
 body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13px;line-height:1.6;min-height:100vh;overflow-x:hidden}
-body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,255,180,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,180,.025) 1px,transparent 1px);background-size:44px 44px;pointer-events:none;z-index:0}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(var(--grid-color,rgba(0,255,180,.025)) 1px,transparent 1px),linear-gradient(90deg,var(--grid-color,rgba(0,255,180,.025)) 1px,transparent 1px);background-size:44px 44px;pointer-events:none;z-index:0}
 body::after{content:'';position:fixed;top:-100%;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--a),transparent);opacity:.4;animation:scan 7s linear infinite;pointer-events:none;z-index:9999}
 @keyframes scan{to{top:200%}}
 
@@ -56,6 +56,34 @@ body::after{content:'';position:fixed;top:-100%;left:0;right:0;height:1px;backgr
 .pwa-install-btn:active{transform:translateY(0)}
 .pwa-dismiss{background:none;border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:9px 12px;color:var(--muted);font-size:10px;cursor:pointer;letter-spacing:1px;font-family:var(--mono);transition:all .2s;white-space:nowrap}
 .pwa-dismiss:hover{color:var(--text)}
+
+/* ── PWA INSTALL MODAL (manual steps for iOS / China browsers) */
+#pwaModal{
+  display:none;position:fixed;inset:0;z-index:99999;
+  background:rgba(0,0,0,.75);backdrop-filter:blur(6px);
+  align-items:flex-end;justify-content:center;
+  animation:fadein .2s ease;
+}
+#pwaModal.show{display:flex}
+.pwa-modal-box{
+  background:var(--surface);border:1px solid var(--b);
+  border-radius:18px 18px 0 0;padding:24px 22px 36px;
+  width:100%;max-width:480px;
+  animation:slideup .3s cubic-bezier(.22,.61,.36,1);
+}
+@keyframes slideup{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.pwa-modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.pwa-modal-title{font-family:var(--disp);font-size:15px;font-weight:700;color:#fff}
+.pwa-modal-close{background:rgba(255,255,255,.08);border:none;border-radius:50%;width:30px;height:30px;color:var(--muted);font-size:16px;cursor:pointer;display:grid;place-items:center}
+.pwa-modal-close:hover{color:#fff}
+.pwa-modal-browser{font-size:10px;color:var(--gold);letter-spacing:2px;text-transform:uppercase;margin-bottom:14px}
+.pwa-step{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.pwa-step:last-child{border-bottom:none}
+.pwa-step-num{width:26px;height:26px;border-radius:50%;background:rgba(0,255,180,.12);border:1px solid rgba(0,255,180,.3);color:var(--a);font-size:11px;font-weight:700;display:grid;place-items:center;flex-shrink:0;margin-top:2px}
+.pwa-step-text{font-size:13px;color:var(--text);line-height:1.6}
+.pwa-step-text strong{color:#fff}
+.pwa-step-emoji{font-size:18px;flex-shrink:0;margin-top:2px}
+.pwa-wechat-tip{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:8px;padding:12px;margin-top:12px;font-size:12px;color:var(--gold);line-height:1.7}
 
 /* ── HEADER ──────────────────────────────────────────────── */
 header{display:flex;align-items:center;justify-content:space-between;padding-bottom:18px;border-bottom:1px solid var(--b);margin-bottom:18px;flex-wrap:wrap;gap:12px}
@@ -169,8 +197,21 @@ header{display:flex;align-items:center;justify-content:space-between;padding-bot
 .pval span{font-size:10px;color:var(--muted);font-family:var(--mono);font-weight:400}
 
 /* ── PLAYBACK SCREEN ─────────────────────────────────────── */
-.pb-screen{background:rgba(0,0,0,.55);border:1px solid var(--b);border-radius:10px;padding:18px 20px;min-height:64px;font-size:17px;color:var(--a);font-family:var(--mono);position:relative;letter-spacing:.4px;line-height:1.9;word-break:break-word}
+.pb-screen{background:rgba(0,0,0,.55);border:1px solid var(--b);border-radius:10px;padding:18px 20px 42px;min-height:64px;font-size:17px;color:var(--a);font-family:var(--mono);position:relative;letter-spacing:.4px;line-height:1.9;word-break:break-word}
 .pb-screen::before{content:'AI OUTPUT';position:absolute;top:-9px;left:16px;background:var(--surface);padding:0 8px;font-size:9px;color:var(--muted);letter-spacing:2px}
+.copy-btn{
+  position:absolute;bottom:10px;right:12px;
+  display:flex;align-items:center;gap:5px;
+  background:rgba(0,255,180,.08);border:1px solid rgba(0,255,180,.25);
+  border-radius:6px;padding:5px 11px;
+  color:var(--a);font-family:var(--mono);font-size:9px;
+  letter-spacing:1.5px;text-transform:uppercase;
+  cursor:pointer;transition:all .2s;user-select:none;
+}
+.copy-btn:hover{background:rgba(0,255,180,.18);box-shadow:0 0 12px rgba(0,255,180,.15)}
+.copy-btn:active{transform:scale(.96)}
+.copy-btn.copied{background:rgba(0,255,180,.22);border-color:var(--a);color:#fff}
+.copy-btn svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2;flex-shrink:0}
 .pb-cursor{display:inline-block;width:2px;height:18px;background:var(--a2);vertical-align:middle;margin-left:1px;animation:cblink .8s step-end infinite}
 
 /* ── STYLE CARDS ─────────────────────────────────────────── */
@@ -227,12 +268,248 @@ footer{text-align:center;margin-top:36px;padding-top:16px;border-top:1px solid v
 
 ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--dim);border-radius:4px}
 
-@media(max-width:640px){
-  .metrics{grid-template-columns:repeat(2,1fr)}
-  .pgrid{grid-template-columns:repeat(2,1fr)}
-  .style-grid{grid-template-columns:repeat(3,1fr)}
-  .two-col{grid-template-columns:1fr}
-  .new-sentence-btn{width:100%;justify-content:center}
+/* ── THEME BAR (sticky top, always visible) ──────────────── */
+#themeBar{
+  position:fixed;top:0;left:0;right:0;z-index:50000;
+  display:flex;align-items:center;gap:10px;
+  padding:0 18px;height:44px;
+  background:var(--surface);
+  border-bottom:1px solid var(--b);
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+  transition:background .3s,border-color .3s;
+}
+.tb-label{
+  font-size:9px;letter-spacing:2px;text-transform:uppercase;
+  color:var(--muted);white-space:nowrap;font-family:var(--mono);
+  transition:color .3s;
+}
+.tb-icon{font-size:15px;flex-shrink:0;line-height:1;transition:opacity .3s}
+.tb-track{
+  flex:1;max-width:260px;position:relative;
+  height:4px;background:var(--dim);border-radius:4px;
+  cursor:pointer;transition:background .3s;
+}
+.tb-fill{
+  position:absolute;left:0;top:0;height:100%;
+  background:linear-gradient(90deg,var(--a2),var(--gold));
+  border-radius:4px;pointer-events:none;transition:width .05s;
+}
+#themeSlider{
+  position:absolute;inset:0;width:100%;opacity:0;
+  height:100%;cursor:pointer;margin:0;
+}
+/* make hit area taller for mobile */
+#themeSlider{height:32px;top:-14px;}
+.tb-val{
+  font-family:var(--disp);font-size:12px;font-weight:700;
+  color:var(--a);min-width:34px;text-align:right;
+  transition:color .3s;
+}
+.tb-mode{
+  font-size:9px;letter-spacing:1.5px;color:var(--muted);
+  text-transform:uppercase;font-family:var(--mono);
+  min-width:46px;transition:color .3s;
+}
+body{padding-top:44px}
+
+/* ═══════════════════════════════════════════════════════════
+   RESPONSIVE SYSTEM
+   xs  : 0–479px    (small phone)
+   sm  : 480–639px  (phone landscape / large phone)
+   md  : 640–767px  (small tablet)
+   lg  : 768–1023px (tablet / small laptop)
+   xl  : 1024px+    (desktop / PWA on PC)
+═══════════════════════════════════════════════════════════ */
+
+/* ── Base fluid font / shell ─────────────────────────────── */
+html { font-size: clamp(11px, 1.3vw, 14px); }
+
+.shell{
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: clamp(12px, 3vw, 28px) clamp(10px, 3vw, 24px) 80px;
+}
+
+/* ── Theme bar responsive ────────────────────────────────── */
+#themeBar { padding: 0 clamp(10px,3vw,20px); gap: clamp(6px,1.5vw,12px); }
+.tb-track  { max-width: clamp(90px, 30vw, 260px); }
+.tb-label  { display: none; } /* hide "Theme" text on small screens */
+
+/* ── Header ──────────────────────────────────────────────── */
+header {
+  flex-wrap: wrap;
+  gap: clamp(8px, 2vw, 14px);
+  padding-bottom: clamp(12px, 2vw, 18px);
+  margin-bottom: clamp(12px, 2vw, 18px);
+}
+.brand     { font-size: clamp(14px, 3.5vw, 20px); }
+.brand-sub { font-size: clamp(7px,  1.5vw,  9px); }
+.logo-icon { width: clamp(32px,5vw,42px); height: clamp(32px,5vw,42px); }
+
+/* ── Tabs ────────────────────────────────────────────────── */
+.tabs {
+  gap: 2px;
+  padding: 3px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.tabs::-webkit-scrollbar { display: none; }
+.tab {
+  min-width: clamp(56px, 12vw, 84px);
+  font-size: clamp(8px, 1.5vw, 10px);
+  padding: clamp(7px,1.5vw,9px) clamp(4px,1vw,7px);
+  white-space: nowrap;
+}
+
+/* ── Cards ───────────────────────────────────────────────── */
+.card { padding: clamp(14px, 3vw, 20px); margin-bottom: clamp(8px, 1.5vw, 12px); }
+
+/* ── Metrics grid ────────────────────────────────────────── */
+.metrics { grid-template-columns: repeat(4, 1fr); gap: clamp(5px,1.5vw,8px); }
+.mv      { font-size: clamp(16px, 4vw, 23px); }
+
+/* ── Profile grid ────────────────────────────────────────── */
+.pgrid { grid-template-columns: repeat(3, 1fr); gap: clamp(7px,1.5vw,10px); }
+
+/* ── Style selector cards ────────────────────────────────── */
+.style-grid { grid-template-columns: repeat(5, 1fr); gap: clamp(5px,1.5vw,8px); }
+
+/* ── Two-col layout ──────────────────────────────────────── */
+.two-col { grid-template-columns: 1fr 1fr; gap: clamp(8px,2vw,13px); }
+
+/* ── Buttons ─────────────────────────────────────────────── */
+.btn { min-width: clamp(70px,15vw,90px); font-size: clamp(8px,1.5vw,10px); padding: clamp(8px,2vw,11px) clamp(6px,1.5vw,9px); }
+
+/* ── Textarea ────────────────────────────────────────────── */
+.type-area  { font-size: clamp(12px, 2.5vw, 14px); height: clamp(65px,12vw,78px); }
+.paste-area { font-size: clamp(11px, 2.5vw, 13px); height: clamp(70px,12vw,88px); }
+
+/* ── Target sentence box ─────────────────────────────────── */
+.target-box { font-size: clamp(12px, 2.5vw, 15px); padding: clamp(10px,2vw,14px) clamp(12px,2.5vw,18px); }
+
+/* ── Playback screen ─────────────────────────────────────── */
+.pb-screen  { font-size: clamp(12px, 2.5vw, 17px); padding: clamp(12px,2.5vw,18px) clamp(14px,3vw,20px); }
+
+/* ── PWA Install bar ─────────────────────────────────────── */
+#pwaBar { padding: clamp(8px,2vw,12px) clamp(12px,3vw,18px); gap: clamp(8px,2vw,12px); }
+.pwa-install-btn { padding: clamp(7px,1.5vw,9px) clamp(12px,2.5vw,18px); font-size: clamp(8px,1.5vw,10px); }
+
+
+/* ═══════════════ xs: 0–479px (small phone) ═══════════════ */
+@media (max-width: 479px) {
+  html { font-size: 11px; }
+  .shell { padding: 10px 10px 70px; }
+
+  /* theme bar compact */
+  #themeBar { height: 40px; }
+  body { padding-top: 40px; }
+  .tb-val, .tb-mode { font-size: 10px; }
+
+  /* header stacks */
+  header { flex-direction: column; align-items: flex-start; }
+  .hright { width: 100%; justify-content: space-between; }
+
+  /* tabs scroll compact */
+  .tab { min-width: 52px; font-size: 8px; padding: 6px 4px; }
+
+  /* grids collapse to 2 cols */
+  .metrics    { grid-template-columns: repeat(2, 1fr); }
+  .pgrid      { grid-template-columns: repeat(2, 1fr); }
+  .style-grid { grid-template-columns: repeat(3, 1fr); }
+  .two-col    { grid-template-columns: 1fr; }
+
+  /* sentence row stacks */
+  .sentence-bottom-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .new-sentence-btn    { width: 100%; justify-content: center; }
+
+  /* pwa bar compact */
+  .pwa-text { display: none; }
+  .pwa-install-btn { padding: 7px 12px; }
+
+  /* slider row stacks */
+  .slrow { flex-wrap: wrap; }
+  input[type=range] { width: 100%; flex: none; }
+
+  /* btn row: 2 per row */
+  .btn-row .btn { min-width: calc(50% - 4px); flex: 0 0 calc(50% - 4px); }
+
+  /* speech ring smaller */
+  .speech-ring { width: 72px; height: 72px; }
+
+  /* style cards smaller */
+  .scard { padding: 8px 4px; }
+  .scard .si { font-size: 18px; }
+}
+
+
+/* ═══════════════ sm: 480–639px (phone landscape) ═════════ */
+@media (min-width: 480px) and (max-width: 639px) {
+  html { font-size: 12px; }
+  .metrics    { grid-template-columns: repeat(2, 1fr); }
+  .pgrid      { grid-template-columns: repeat(3, 1fr); }
+  .style-grid { grid-template-columns: repeat(5, 1fr); }
+  .two-col    { grid-template-columns: 1fr; }
+  .new-sentence-btn { width: 100%; justify-content: center; }
+  .sentence-bottom-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+}
+
+
+/* ═══════════════ md: 640–767px (small tablet) ════════════ */
+@media (min-width: 640px) and (max-width: 767px) {
+  html { font-size: 12px; }
+  .metrics    { grid-template-columns: repeat(4, 1fr); }
+  .pgrid      { grid-template-columns: repeat(3, 1fr); }
+  .style-grid { grid-template-columns: repeat(5, 1fr); }
+  .two-col    { grid-template-columns: 1fr; }
+  .tb-label   { display: inline; }
+}
+
+
+/* ═══════════════ lg: 768–1023px (tablet/small laptop) ════ */
+@media (min-width: 768px) and (max-width: 1023px) {
+  html { font-size: 12.5px; }
+  .shell      { padding: 18px 20px 80px; }
+  .two-col    { grid-template-columns: 1fr 1fr; }
+  .tb-label   { display: inline; }
+}
+
+
+/* ═══════════════ xl: 1024px+ (desktop / installed PWA) ═══ */
+@media (min-width: 1024px) {
+  html { font-size: 13px; }
+  .shell      { padding: 24px 24px 80px; }
+  .tb-label   { display: inline; }
+  .tb-track   { max-width: 260px; }
+}
+
+
+/* ═══════════════ PWA Standalone (installed app on any device) ════ */
+@media (display-mode: standalone) {
+  /* iOS safe area insets for notched phones */
+  body {
+    padding-top: calc(44px + env(safe-area-inset-top));
+    padding-left:  env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  #themeBar {
+    top: env(safe-area-inset-top, 0);
+    padding-left:  calc(18px + env(safe-area-inset-left));
+    padding-right: calc(18px + env(safe-area-inset-right));
+  }
+  .shell {
+    padding-bottom: calc(80px + env(safe-area-inset-bottom));
+  }
+  /* Hide browser chrome hints since we're in standalone */
+  .pwa-sub { display: none; }
+}
+
+/* iOS standalone webkit */
+@media (max-width: 479px) and (display-mode: standalone) {
+  #themeBar { height: 40px; }
 }
 </style>
 <link rel="manifest" href="/static/manifest.json">
@@ -245,6 +522,22 @@ footer{text-align:center;margin-top:36px;padding-top:16px;border-top:1px solid v
 </script>
 </head>
 <body>
+
+<!-- ══ THEME BAR — always visible, sticky top ══ -->
+<div id="themeBar">
+  <span class="tb-label">Theme</span>
+  <span class="tb-icon" id="tbMoon">🌙</span>
+  <div class="tb-track">
+    <div class="tb-fill" id="tbFill" style="width:0%"></div>
+    <input type="range" id="themeSlider" min="0" max="100" value="0"
+      oninput="applyTheme(this.value)" onchange="applyTheme(this.value)"
+      aria-label="Theme: 0 = dark, 100 = light">
+  </div>
+  <span class="tb-icon" id="tbSun">☀️</span>
+  <span class="tb-val" id="tbVal">0</span>
+  <span class="tb-mode" id="tbMode">DARK</span>
+</div>
+
 <div class="shell">
 
 <!-- ══ PWA INSTALL BAR ══ -->
@@ -252,12 +545,22 @@ footer{text-align:center;margin-top:36px;padding-top:16px;border-top:1px solid v
   <div class="pwa-icon">📲</div>
   <div class="pwa-text">
     <div class="pwa-title">Install HTIE App</div>
-    <div class="pwa-sub">Add to your home screen — works offline, no browser UI</div>
+    <div class="pwa-sub" id="pwaBarSub">Add to your home screen — works offline, no browser UI</div>
   </div>
-  <button class="pwa-install-btn" id="installBtn">
-    <span>📲</span> ⬇ Install App
-  </button>
-  <button class="pwa-dismiss" onclick="dismissPWA()">✕ Not now</button>
+  <button class="pwa-install-btn" id="installBtn" onclick="handleInstall()">⬇ Install App</button>
+  <button class="pwa-dismiss" onclick="dismissPWA()">✕</button>
+</div>
+
+<!-- ══ PWA MANUAL INSTALL MODAL ══ -->
+<div id="pwaModal" onclick="closePwaModal(event)">
+  <div class="pwa-modal-box" id="pwaModalBox">
+    <div class="pwa-modal-head">
+      <div class="pwa-modal-title">📲 Install HTIE App</div>
+      <button class="pwa-modal-close" onclick="document.getElementById('pwaModal').classList.remove('show')">✕</button>
+    </div>
+    <div class="pwa-modal-browser" id="pwaModalBrowser">INSTALL GUIDE</div>
+    <div id="pwaModalSteps"></div>
+  </div>
 </div>
 
 <!-- ══ HEADER ══ -->
@@ -302,7 +605,6 @@ footer{text-align:center;margin-top:36px;padding-top:16px;border-top:1px solid v
 <div class="panel active" id="tab-capture">
   <div class="card">
     <div class="card-title">Type the Target Sentence</div>
-
     <div class="sentence-wrap">
       <div class="target-box">
         <span class="target-label">TYPE EXACTLY</span>
@@ -315,7 +617,6 @@ footer{text-align:center;margin-top:36px;padding-top:16px;border-top:1px solid v
         </button>
       </div>
     </div>
-
     <div class="prog-wrap">
       <div class="prog-labels"><span>COMPLETION</span><span id="pPct">0%</span></div>
       <div class="prog-track"><div class="prog-fill" id="pFill" style="width:0%"></div></div>
@@ -393,7 +694,7 @@ footer{text-align:center;margin-top:36px;padding-top:16px;border-top:1px solid v
   </div>
   <div class="card">
     <div class="card-title">AI Output</div>
-    <div class="pb-screen"><span id="pbText"></span><span class="pb-cursor" id="pbCursor" style="display:none"></span></div>
+    <div class="pb-screen"><span id="pbText"></span><span class="pb-cursor" id="pbCursor" style="display:none"></span><button class="copy-btn" onclick="copyBox('pbText',this)" title="Copy output"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy</button></div>
     <div class="metrics" style="margin-top:12px">
       <div class="metric"><div class="mv blue" id="pb-prog">0%</div><div class="ml">Progress</div></div>
       <div class="metric"><div class="mv" id="pb-delay">—</div><div class="ml">Delay ms</div></div>
@@ -431,7 +732,7 @@ footer{text-align:center;margin-top:36px;padding-top:16px;border-top:1px solid v
   </div>
   <div class="card">
     <div class="card-title">AI Output — Your Words</div>
-    <div class="pb-screen"><span id="speechPbText"></span><span class="pb-cursor" id="speechCursor" style="display:none"></span></div>
+    <div class="pb-screen"><span id="speechPbText"></span><span class="pb-cursor" id="speechCursor" style="display:none"></span><button class="copy-btn" onclick="copyBox('speechPbText',this)" title="Copy output"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy</button></div>
     <div class="sbar" id="speechPbStatus">⬡ Speak, then press AI Type My Words.</div>
   </div>
 </div>
@@ -465,7 +766,7 @@ footer{text-align:center;margin-top:36px;padding-top:16px;border-top:1px solid v
   </div>
   <div class="card">
     <div class="card-title">AI Output</div>
-    <div class="pb-screen"><span id="genPbText"></span><span class="pb-cursor" id="genCursor" style="display:none"></span></div>
+    <div class="pb-screen"><span id="genPbText"></span><span class="pb-cursor" id="genCursor" style="display:none"></span><button class="copy-btn" onclick="copyBox('genPbText',this)" title="Copy output"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy</button></div>
     <div class="metrics" style="margin-top:12px">
       <div class="metric"><div class="mv blue" id="gen-prog">0%</div><div class="ml">Progress</div></div>
       <div class="metric"><div class="mv" id="gen-wpm">—</div><div class="ml">Est. WPM</div></div>
@@ -496,7 +797,7 @@ footer{text-align:center;margin-top:36px;padding-top:16px;border-top:1px solid v
   </div>
   <div class="card">
     <div class="card-title">AI Output — Typing Your Text</div>
-    <div class="pb-screen" style="min-height:100px"><span id="pastePbText"></span><span class="pb-cursor" id="pasteCursor" style="display:none"></span></div>
+    <div class="pb-screen" style="min-height:100px"><span id="pastePbText"></span><span class="pb-cursor" id="pasteCursor" style="display:none"></span><button class="copy-btn" onclick="copyBox('pastePbText',this)" title="Copy output"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy</button></div>
     <div class="metrics" style="margin-top:12px">
       <div class="metric"><div class="mv blue" id="paste-prog">0%</div><div class="ml">Progress</div></div>
       <div class="metric"><div class="mv" id="paste-delay">—</div><div class="ml">Delay ms</div></div>
@@ -538,126 +839,266 @@ footer{text-align:center;margin-top:36px;padding-top:16px;border-top:1px solid v
 
 <script>
 /* ═══════════════════════════════════════════════════════════
-   htie.js — Human Typing Intelligence Engine v3
-   External JS file. Linked from index.html via <script src="htie.js">
-   All logic: PWA, audio, capture, analysis, playback, speech, generate, paste, profile
+   HTIE v3 — Complete Engine
+   PWA: Universal install for ALL mobiles incl. China browsers
 ═══════════════════════════════════════════════════════════ */
 
 /* ═══════════════════════════════════════════════════════════
-   PWA INSTALLATION — ISOLATED MODULE
-   Website : HTIE v3 — Human Typing Intelligence Engine
-   Works on: PC (Chrome/Edge) + Mobile (Android/iOS)
-   To reuse: copy this entire block, change CACHE_NAME only.
+   PWA INSTALLATION — UNIVERSAL MODULE
+   Covers: Chrome/Edge (PC+Android), iOS Safari, Samsung,
+           WeChat, UC Browser, Baidu, QQ Browser,
+           Huawei Browser, MIUI (Xiaomi), OPPO, Vivo, Firefox
 ═══════════════════════════════════════════════════════════ */
 
-// ── Inject Web App Manifest ──────────────────────────────
-(function injectManifest() {
-  const manifest = {
-    name: 'HTIE — Human Typing Intelligence Engine',
-    short_name: 'HTIE',
-    id: 'htie-v3',
-    description: 'Learn and replicate your unique typing style with AI.',
-    start_url: '.',
-    scope: '.',
-    display: 'standalone',
-    orientation: 'any',
-    background_color: '#060b12',
-    theme_color: '#060b12',
-    icons: [{
-      src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23060b12'/%3E%3Cpolyline points='22 72 46 48 22 24' stroke='%2300ffb4' stroke-width='8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cline x1='54' y1='78' x2='82' y2='78' stroke='%2300ffb4' stroke-width='8' stroke-linecap='round'/%3E%3Ccircle cx='82' cy='78' r='5' fill='%2300b8ff'/%3E%3C/svg%3E",
-      sizes: '512x512', type: 'image/svg+xml', purpose: 'any maskable'
-    }]
+let deferredPrompt = null;
+
+/* ── Browser / Device Detection ─────────────────────────── */
+function detectBrowser() {
+  const ua = navigator.userAgent;
+  const info = {
+    isIOS:      /iPhone|iPad|iPod/i.test(ua),
+    isAndroid:  /Android/i.test(ua),
+    isMobile:   /Mobi|Android|iPhone|iPad|iPod/i.test(ua),
+    isWeChat:   /MicroMessenger/i.test(ua),
+    isUC:       /UCBrowser|UCWEB/i.test(ua),
+    isBaidu:    /baidubrowser|BaiduHD/i.test(ua),
+    isQQ:       /QQBrowser|MQQBrowser/i.test(ua),
+    isHuawei:   /HuaweiBrowser/i.test(ua),
+    isMIUI:     /MiuiBrowser/i.test(ua),
+    isSamsung:  /SamsungBrowser/i.test(ua),
+    isOPPO:     /OppoBrowser|OPPO/i.test(ua),
+    isVivo:     /VivoBrowser|vivo/i.test(ua),
+    isFirefox:  /Firefox/i.test(ua) && !/Seamonkey/i.test(ua),
+    isChrome:   /Chrome/i.test(ua) && !/Chromium|Edg|OPR/i.test(ua),
+    isEdge:     /Edg\//i.test(ua),
+    isSafari:   /Safari/i.test(ua) && !/Chrome/i.test(ua),
   };
-  const blob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
-  const link = document.createElement('link');
-  link.rel = 'manifest';
-  link.href = URL.createObjectURL(blob);
-  document.head.appendChild(link);
-})();
+  // Chinese browsers collectively
+  info.isChinaBrowser = info.isWeChat || info.isUC || info.isBaidu || info.isQQ || info.isHuawei || info.isMIUI || info.isOPPO || info.isVivo;
+  // Supports native beforeinstallprompt
+  info.supportsPrompt = (info.isChrome || info.isEdge || info.isSamsung) && !info.isIOS && !info.isWeChat;
+  return info;
+}
 
-// ── Register Service Worker (offline caching) ────────────
-(function registerSW() {
-  if (!('serviceWorker' in navigator)) return;
-  const CACHE_NAME = 'htie-v3-app';
-  const swCode = `
-    const CACHE = 'htie-v3-app';
-    self.addEventListener('install', e => {
-      e.waitUntil(caches.open(CACHE).then(c => c.addAll([self.location.href])));
-      self.skipWaiting();
-    });
-    self.addEventListener('activate', e => {
-      e.waitUntil(
-        caches.keys().then(keys =>
-          Promise.all(keys.filter(k => k.startsWith('htie-') && k !== CACHE).map(k => caches.delete(k)))
-        )
-      );
-      self.clients.claim();
-    });
-    self.addEventListener('fetch', e => {
-      e.respondWith(caches.match(e.request).then(r => r || fetch(e.request).catch(() => r)));
-    });
-  `;
-  const blob = new Blob([swCode], { type: 'application/javascript' });
-  navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(() => {});
-})();
+/* ── Install Steps Config per Browser ───────────────────── */
+function getInstallSteps(br) {
+  if (br.isWeChat) {
+    return {
+      browser: '微信 WeChat',
+      wechat: true,
+      steps: [
+        { e: '↗️', t: 'Tap the <strong>⋯</strong> button (top-right corner)' },
+        { e: '🌐', t: 'Select <strong>"Open in Browser"</strong> (在浏览器中打开)' },
+        { e: '📲', t: 'Then follow the Chrome/Safari steps to install from browser' },
+      ],
+      tip: '⚠️ WeChat does not allow direct app install. You must open this page in Chrome or Safari first, then install from there.'
+    };
+  }
+  if (br.isUC) {
+    return {
+      browser: 'UC Browser',
+      steps: [
+        { e: '⋮', t: 'Tap the <strong>Menu</strong> button (bottom or top)' },
+        { e: '➕', t: 'Select <strong>"Add to Desktop"</strong> (添加到桌面)' },
+        { e: '✅', t: 'Tap <strong>Add</strong> to confirm — icon appears on home screen' },
+      ]
+    };
+  }
+  if (br.isBaidu) {
+    return {
+      browser: 'Baidu Browser 百度浏览器',
+      steps: [
+        { e: '⋯', t: 'Tap the <strong>More</strong> menu (more options icon)' },
+        { e: '📌', t: 'Select <strong>"Add to Home Screen"</strong> (添加到主屏幕)' },
+        { e: '✅', t: 'Confirm to add HTIE icon to your home screen' },
+      ]
+    };
+  }
+  if (br.isQQ) {
+    return {
+      browser: 'QQ Browser',
+      steps: [
+        { e: '⋮', t: 'Tap the <strong>Menu</strong> icon (bottom toolbar)' },
+        { e: '🏠', t: 'Select <strong>"Add to Home Screen"</strong> (添加到主屏幕)' },
+        { e: '✅', t: 'Tap <strong>OK</strong> — HTIE icon added to home screen' },
+      ]
+    };
+  }
+  if (br.isHuawei) {
+    return {
+      browser: 'Huawei Browser 华为浏览器',
+      steps: [
+        { e: '⋮', t: 'Tap the <strong>⋮</strong> menu (top-right)' },
+        { e: '📲', t: 'Select <strong>"Add to Home Screen"</strong> (添加到桌面)' },
+        { e: '✅', t: 'Tap <strong>Add</strong> to confirm' },
+      ]
+    };
+  }
+  if (br.isMIUI) {
+    return {
+      browser: 'MIUI Browser (Xiaomi)',
+      steps: [
+        { e: '⋮', t: 'Tap the <strong>⋮</strong> menu button' },
+        { e: '🏠', t: 'Tap <strong>"Add to Home Screen"</strong> (添加到桌面)' },
+        { e: '✅', t: 'Confirm — HTIE shortcut added' },
+      ]
+    };
+  }
+  if (br.isOPPO || br.isVivo) {
+    return {
+      browser: br.isOPPO ? 'OPPO Browser' : 'Vivo Browser',
+      steps: [
+        { e: '⋮', t: 'Tap <strong>Menu</strong> (three dots or bottom bar)' },
+        { e: '📲', t: 'Select <strong>"Add to Home Screen"</strong>' },
+        { e: '✅', t: 'Confirm to add HTIE to your home screen' },
+      ]
+    };
+  }
+  if (br.isIOS && br.isSafari) {
+    return {
+      browser: 'iPhone / iPad Safari',
+      steps: [
+        { e: '⎙', t: 'Tap the <strong>Share</strong> button at the bottom of Safari (box with arrow up)' },
+        { e: '🏠', t: 'Scroll down and tap <strong>"Add to Home Screen"</strong>' },
+        { e: '✏️', t: 'Edit the name if you want, then tap <strong>Add</strong>' },
+        { e: '✅', t: 'HTIE icon appears on your iPhone/iPad home screen!' },
+      ]
+    };
+  }
+  if (br.isIOS) {
+    return {
+      browser: 'iOS Browser',
+      steps: [
+        { e: '🌐', t: 'Open this page in <strong>Safari</strong> (not Chrome or another browser)' },
+        { e: '⎙', t: 'Tap the <strong>Share</strong> icon at the bottom' },
+        { e: '🏠', t: 'Tap <strong>"Add to Home Screen"</strong>' },
+        { e: '✅', t: 'Tap <strong>Add</strong> to confirm' },
+      ]
+    };
+  }
+  if (br.isFirefox) {
+    return {
+      browser: 'Firefox',
+      steps: [
+        { e: '⋮', t: 'Tap the <strong>⋮</strong> menu (top-right)' },
+        { e: '🏠', t: 'Select <strong>"Install"</strong> or <strong>"Add to Home Screen"</strong>' },
+        { e: '✅', t: 'Confirm the install prompt' },
+      ]
+    };
+  }
+  if (br.isSamsung) {
+    return {
+      browser: 'Samsung Internet',
+      steps: [
+        { e: '☰', t: 'Tap the <strong>Menu</strong> button (bottom right)' },
+        { e: '➕', t: 'Select <strong>"Add page to"</strong> → <strong>"Home screen"</strong>' },
+        { e: '✅', t: 'Tap <strong>Add</strong> to confirm' },
+      ]
+    };
+  }
+  // Default Android Chrome / Edge
+  return {
+    browser: 'Chrome / Edge',
+    steps: [
+      { e: '⋮', t: 'Tap the <strong>⋮</strong> menu (top-right corner)' },
+      { e: '📲', t: 'Select <strong>"Install app"</strong> or <strong>"Add to Home screen"</strong>' },
+      { e: '✅', t: 'Tap <strong>Install</strong> to confirm' },
+    ]
+  };
+}
 
-// ── PWA State ────────────────────────────────────────────
-let deferredPrompt; // holds the browser install event
+/* ── Show Manual Install Modal ───────────────────────────── */
+function showInstallModal() {
+  const br = detectBrowser();
+  const cfg = getInstallSteps(br);
 
-// ── setupPWA() — isolated, called once in DOMContentLoaded
-function setupPWA() {
-  const installBtn = document.getElementById('installBtn');
+  document.getElementById('pwaModalBrowser').textContent = cfg.browser.toUpperCase();
 
-  // Hide by default — only show when browser confirms installable
-  installBtn.style.display = 'none';
-  document.getElementById('pwaBar').style.display = 'none';
-
-  // Browser fires this on Chrome/Edge PC + Android when app is installable
-  window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-    installBtn.style.display = 'block';
-    document.getElementById('pwaBar').classList.add('show');
+  let html = '';
+  cfg.steps.forEach((s, i) => {
+    html += `<div class="pwa-step">
+      <div class="pwa-step-num">${i + 1}</div>
+      <div class="pwa-step-emoji">${s.e}</div>
+      <div class="pwa-step-text">${s.t}</div>
+    </div>`;
   });
+  if (cfg.tip) {
+    html += `<div class="pwa-wechat-tip">${cfg.tip}</div>`;
+  }
 
-  // Install button click
-  installBtn.addEventListener('click', async () => {
-    playBtnClick();
-    if (!deferredPrompt) {
-      alert(
-        'Install HTIE on your device:\n\n' +
-        '💻 Chrome/Edge (PC): Click ⋮ menu → "Install app"\n' +
-        '📱 Android Chrome: Tap ⋮ → "Add to Home screen"\n' +
-        '🍎 iPhone Safari: Tap Share ⎙ → "Add to Home Screen"'
-      );
-      return;
-    }
+  document.getElementById('pwaModalSteps').innerHTML = html;
+  document.getElementById('pwaModal').classList.add('show');
+}
+
+function closePwaModal(e) {
+  if (e.target === document.getElementById('pwaModal')) {
+    document.getElementById('pwaModal').classList.remove('show');
+  }
+}
+
+/* ── handleInstall() — called by install button ─────────── */
+async function handleInstall() {
+  try { playBtnClick(); } catch(e) {}
+
+  if (deferredPrompt) {
+    // Native Chrome/Edge/Samsung — use OS prompt
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
     if (outcome === 'accepted') {
-      installBtn.style.display = 'none';
       document.getElementById('pwaBar').classList.remove('show');
     }
     deferredPrompt = null;
-  });
+    return;
+  }
 
-  // Hide after OS confirms install
-  window.addEventListener('appinstalled', () => {
-    installBtn.style.display = 'none';
-    document.getElementById('pwaBar').classList.remove('show');
-    deferredPrompt = null;
-    setSbar('capStatus', 'ok', '✓ HTIE installed! Open it anytime from your home screen or desktop.');
-  });
+  // No native prompt — show manual instructions modal
+  showInstallModal();
 }
 
-// Dismiss bar without installing
+/* ── dismissPWA() ────────────────────────────────────────── */
 function dismissPWA() {
-  playBtnClick();
+  try { playBtnClick(); } catch(e) {}
   document.getElementById('pwaBar').classList.remove('show');
   sessionStorage.setItem('htie_pwa_dismissed', '1');
 }
 
-/* END PWA ISOLATED MODULE ═══════════════════════════════ */
+/* ── setupPWA() — called in DOMContentLoaded ─────────────── */
+function setupPWA() {
+  const bar = document.getElementById('pwaBar');
+  const sub = document.getElementById('pwaBarSub');
+  const br  = detectBrowser();
+
+  // Already dismissed this session
+  if (sessionStorage.getItem('htie_pwa_dismissed')) return;
+
+  // Already installed as PWA — don't show bar
+  if (window.matchMedia('(display-mode: standalone)').matches ||
+      window.navigator.standalone === true) return;
+
+  if (br.supportsPrompt) {
+    // Chrome/Edge/Samsung — wait for beforeinstallprompt
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      bar.classList.add('show');
+    });
+    window.addEventListener('appinstalled', () => {
+      bar.classList.remove('show');
+      deferredPrompt = null;
+      try { setSbar('capStatus', 'ok', '✓ HTIE installed! Open it anytime from your home screen or desktop.'); } catch(e) {}
+    });
+
+  } else if (br.isMobile) {
+    // All other mobile: iOS, WeChat, UC, Baidu, QQ, Huawei, MIUI, OPPO, Vivo, Firefox Mobile
+    // Always show bar with manual install instructions
+    const cfg = getInstallSteps(br);
+    if (sub) sub.textContent = `Tap to install on ${cfg.browser}`;
+    bar.classList.add('show');
+  }
+  // Desktop non-Chrome: don't show bar
+}
+
+/* END PWA UNIVERSAL MODULE ══════════════════════════════ */
 
 
 /* ─── AUDIO ENGINE ──────────────────────────────────────── */
@@ -818,15 +1259,14 @@ let inputBox;
 
 /* ─── INIT — DOMContentLoaded ───────────────────────────── */
 document.addEventListener('DOMContentLoaded', () => {
-  setupPWA();            // PWA install button — isolated module
+  initTheme();           // apply saved theme before anything renders
+  setupPWA();
   inputBox = document.getElementById('inputBox');
-  bindCaptureEvents();   // attach keydown/input after DOM ready
+  bindCaptureEvents();
   renderChars('');
   updateSentenceCounter();
   loadProfile();
   updDelay();
-
-  // Unlock AudioCtx on any tap/click
   document.addEventListener('click', () => { try { getACtx(); } catch (e) {} }, { passive: true });
 });
 
@@ -1297,6 +1737,38 @@ function clearProfile() {
 }
 
 
+/* ─── COPY BOX ──────────────────────────────────────────── */
+function copyBox(spanId, btn) {
+  try { playBtnClick(); } catch(e) {}
+  const text = document.getElementById(spanId).textContent.trim();
+  if (!text) {
+    btn.textContent = '⚠ Empty';
+    setTimeout(() => { btn.innerHTML = '<svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy'; }, 1400);
+    return;
+  }
+  navigator.clipboard.writeText(text).then(() => {
+    btn.classList.add('copied');
+    btn.innerHTML = '<svg viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2.5;width:11px;height:11px"><polyline points="20 6 9 17 4 12"/></svg>Copied!';
+    setTimeout(() => {
+      btn.classList.remove('copied');
+      btn.innerHTML = '<svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy';
+    }, 2000);
+  }).catch(() => {
+    // Fallback for older browsers / PWA contexts
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    btn.classList.add('copied');
+    btn.innerHTML = '✓ Copied!';
+    setTimeout(() => {
+      btn.classList.remove('copied');
+      btn.innerHTML = '<svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy';
+    }, 2000);
+  });
+}
+
 /* ─── UTILITY ───────────────────────────────────────────── */
 function setSbar(id, type, msg) {
   const el = document.getElementById(id);
@@ -1304,7 +1776,112 @@ function setSbar(id, type, msg) {
   el.textContent = msg;
 }
 
-</script>
 
+/* ═══════════════════════════════════════════════════════════
+   THEME ENGINE — 0 (Dark) → 100 (Light)
+   Interpolates every CSS variable smoothly between
+   professional dark and professional light palettes.
+═══════════════════════════════════════════════════════════ */
+
+const THEME_DARK = {
+  bg:       [6,  11, 18],
+  surface:  [13, 23, 36],
+  s2:       [17, 30, 48],
+  text:     [200,216,232],
+  muted:    [74, 96, 112],
+  dim:      [42, 58, 74],
+  bA:       [0, 255, 180, .13],
+  bB:       [0, 184, 255, .13],
+  bC:       [167,139,250,.13],
+};
+const THEME_LIGHT = {
+  bg:       [246,248,252],
+  surface:  [255,255,255],
+  s2:       [237,242,248],
+  text:     [20, 32, 52],
+  muted:    [110,128,148],
+  dim:      [204,216,228],
+  bA:       [0, 180, 120, .18],
+  bB:       [0, 120, 200, .18],
+  bC:       [120, 90, 200, .18],
+};
+
+function lerp(a, b, t) { return Math.round(a + (b - a) * t); }
+function lerpA(a, b, t) { return +(a + (b - a) * t).toFixed(2); }
+
+function applyTheme(val) {
+  val = parseInt(val);
+  const t = val / 100;
+  const D = THEME_DARK, L = THEME_LIGHT;
+  const r = document.documentElement;
+
+  // Core background / surface
+  const bg      = D.bg.map((v,i)=>lerp(v,L.bg[i],t));
+  const surface = D.surface.map((v,i)=>lerp(v,L.surface[i],t));
+  const s2      = D.s2.map((v,i)=>lerp(v,L.s2[i],t));
+  const text    = D.text.map((v,i)=>lerp(v,L.text[i],t));
+  const muted   = D.muted.map((v,i)=>lerp(v,L.muted[i],t));
+  const dim     = D.dim.map((v,i)=>lerp(v,L.dim[i],t));
+
+  // Border alphas
+  const bA = `rgba(${lerp(D.bA[0],L.bA[0],t)},${lerp(D.bA[1],L.bA[1],t)},${lerp(D.bA[2],L.bA[2],t)},${lerpA(D.bA[3],L.bA[3],t)})`;
+  const bB = `rgba(${lerp(D.bB[0],L.bB[0],t)},${lerp(D.bB[1],L.bB[1],t)},${lerp(D.bB[2],L.bB[2],t)},${lerpA(D.bB[3],L.bB[3],t)})`;
+  const bC = `rgba(${lerp(D.bC[0],L.bC[0],t)},${lerp(D.bC[1],L.bC[1],t)},${lerp(D.bC[2],L.bC[2],t)},${lerpA(D.bC[3],L.bC[3],t)})`;
+
+  // Accent colors stay vivid but shift slightly
+  const aG  = `rgb(${lerp(0,0,t)},${lerp(255,180,t)},${lerp(180,100,t)})`;   // green accent
+  const aB  = `rgb(${lerp(0,0,t)},${lerp(184,130,t)},${lerp(255,210,t)})`;   // blue accent
+  const glow = `0 0 20px rgba(${lerp(0,0,t)},${lerp(255,180,t)},${lerp(180,100,t)},${lerpA(.22,.12,t)})`;
+
+  r.style.setProperty('--bg',      `rgb(${bg.join(',')})`);
+  r.style.setProperty('--surface', `rgb(${surface.join(',')})`);
+  r.style.setProperty('--s2',      `rgb(${s2.join(',')})`);
+  r.style.setProperty('--text',    `rgb(${text.join(',')})`);
+  r.style.setProperty('--muted',   `rgb(${muted.join(',')})`);
+  r.style.setProperty('--dim',     `rgb(${dim.join(',')})`);
+  r.style.setProperty('--b',       bA);
+  r.style.setProperty('--b2',      bB);
+  r.style.setProperty('--b3',      bC);
+  r.style.setProperty('--a',       aG);
+  r.style.setProperty('--a2',      aB);
+  r.style.setProperty('--glow',    glow);
+
+  // Body scan line + grid opacity — fade out in light
+  document.body.style.setProperty('--grid-opacity', lerpA(.025, .008, t));
+
+  // Update body grid pseudo-element via CSS var
+  r.style.setProperty('--grid-color', `rgba(${lerp(0,40,t)},${lerp(200,160,t)},${lerp(130,80,t)},${lerpA(.025,.008,t)})`);
+
+  // Update UI
+  document.getElementById('tbFill').style.width = val + '%';
+  document.getElementById('tbVal').textContent  = val;
+
+  const modeEl = document.getElementById('tbMode');
+  const moonEl = document.getElementById('tbMoon');
+  const sunEl  = document.getElementById('tbSun');
+
+  if (val === 0)       { modeEl.textContent = 'DARK';  modeEl.style.color = 'var(--a)'; }
+  else if (val < 30)   { modeEl.textContent = 'DARK';  modeEl.style.color = 'var(--a2)'; }
+  else if (val < 60)   { modeEl.textContent = 'DIM';   modeEl.style.color = 'var(--gold)'; }
+  else if (val < 90)   { modeEl.textContent = 'LIGHT'; modeEl.style.color = '#e88c00'; }
+  else                 { modeEl.textContent = 'LIGHT'; modeEl.style.color = '#c07000'; }
+
+  moonEl.style.opacity = lerpA(1, .3, t);
+  sunEl.style.opacity  = lerpA(.35, 1, t);
+
+  // Persist
+  try { localStorage.setItem('htie_theme', val); } catch(e) {}
+}
+
+/* ── Load saved theme on init ───────────────────────────── */
+function initTheme() {
+  let saved = 0;
+  try { saved = parseInt(localStorage.getItem('htie_theme') || '0'); } catch(e) {}
+  saved = Math.max(0, Math.min(100, saved || 0));
+  document.getElementById('themeSlider').value = saved;
+  applyTheme(saved);
+}
+
+</script>
 </body>
 </html>
